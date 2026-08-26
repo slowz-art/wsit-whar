@@ -5840,23 +5840,99 @@ function Library:CreateWindow(...)
         Parent = Sidebar;
     });
 
-    local SidebarTitle = Library:CreateLabel({
-        Position = UDim2.new(0, 14, 0, 12);
-        Size = UDim2.new(1, -20, 0, 18);
-        Text = (typeof(Config.Title) == "string" and Config.Title ~= " " and Config.Title ~= "" and Config.Title) or "Menu";
-        TextSize = 14;
-        TextXAlignment = Enum.TextXAlignment.Left;
-        TextColor3 = Color3.fromRGB(210, 210, 220);
+    -- Cycling title label (word cycle)
+    local SidebarTitleHolder = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 12, 0, 10);
+        Size = UDim2.new(1, -24, 0, 20);
+        ClipsDescendants = true;
         ZIndex = 4;
         Parent = Sidebar;
     });
 
-    -- Tab list (no search in sidebar — corner search handles options)
+    local function MakeSidebarCycleLabel(Text, Pos)
+        return Library:CreateLabel({
+            BackgroundTransparency = 1;
+            Position = Pos or UDim2.new(0, 0, 0, 0);
+            Size = UDim2.new(1, 0, 1, 0);
+            Text = tostring(Text or '');
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextSize = 14;
+            TextColor3 = Color3.fromRGB(210, 210, 220);
+            RichText = true;
+            ZIndex = 5;
+            Parent = SidebarTitleHolder;
+        });
+    end;
+
+    -- Reuse TitleWords from the main title system
+    local SidebarLabel = MakeSidebarCycleLabel(TitleWords[1], UDim2.new(0, 0, 0, 0));
+    task.spawn(function()
+        local idx = 1;
+        local TS = game:GetService('TweenService');
+        while SidebarTitleHolder and SidebarTitleHolder.Parent do
+            task.wait(1.6);
+            if not (SidebarTitleHolder and SidebarTitleHolder.Parent) then break end;
+            if #TitleWords <= 1 then continue end;
+            local nextIdx = idx + 1;
+            if nextIdx > #TitleWords then nextIdx = 1 end;
+            local nextLabel = MakeSidebarCycleLabel(TitleWords[nextIdx], UDim2.new(1, 0, 0, 0));
+            local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
+            pcall(function()
+                TS:Create(SidebarLabel, ti, { Position = UDim2.new(-1, 0, 0, 0) }):Play();
+                TS:Create(nextLabel, ti, { Position = UDim2.new(0, 0, 0, 0) }):Play();
+            end);
+            task.wait(0.45);
+            pcall(function()
+                if SidebarLabel then SidebarLabel:Destroy() end;
+            end);
+            SidebarLabel = nextLabel;
+            idx = nextIdx;
+            Window.Title = TitleWords[idx];
+        end;
+    end);
+
+    -- Search under the title label
+    local SidebarSearchHolder = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(22, 22, 26);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 10, 0, 36);
+        Size = UDim2.new(1, -20, 0, 26);
+        ZIndex = 4;
+        Parent = Sidebar;
+    });
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 5);
+        Parent = SidebarSearchHolder;
+    });
+
+    local SidebarSearchBox = Library:Create('TextBox', {
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0, 8, 0, 0);
+        Size = UDim2.new(1, -16, 1, 0);
+        Font = Library.Font;
+        Text = "";
+        PlaceholderText = "Search...";
+        PlaceholderColor3 = Color3.fromRGB(90, 90, 100);
+        TextColor3 = Color3.fromRGB(200, 200, 210);
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = 5;
+        Parent = SidebarSearchHolder;
+    });
+
+    Library:ApplyTextStroke(SidebarSearchBox);
+    Window.SidebarSearchBox = SidebarSearchBox;
+
+    -- Tab list below search
     local TabArea = Library:Create('ScrollingFrame', {
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 8, 0, 40);
-        Size = UDim2.new(1, -14, 1, -48);
+        Position = UDim2.new(0, 8, 0, 70);
+        Size = UDim2.new(1, -14, 1, -78);
         CanvasSize = UDim2.new(0, 0, 0, 0);
         ScrollBarThickness = 0;
         BottomImage = '';
@@ -5941,6 +6017,9 @@ function Library:CreateWindow(...)
             if WindowLabel and WindowLabel.Parent then
                 WindowLabel.Text = Window.Title;
             end;
+            if SidebarLabel and SidebarLabel.Parent then
+                SidebarLabel.Text = Window.Title;
+            end;
         end
     end;
 
@@ -5950,6 +6029,9 @@ function Library:CreateWindow(...)
             TitleWords = Words;
             if WindowLabel and WindowLabel.Parent then
                 WindowLabel.Text = tostring(Words[1]);
+            end;
+            if SidebarLabel and SidebarLabel.Parent then
+                SidebarLabel.Text = tostring(Words[1]);
             end;
             Window.Title = tostring(Words[1]);
         end
@@ -7354,39 +7436,48 @@ local function attachSearchToWindow(Window, Outer, Inner)
     if not Window or not Inner or Window._SearchAttached then return end
     Window._SearchAttached = true
 
-    -- Use raw Instance.new for search UI so DPI/Create quirks can't blank it
-    local SearchBox = Instance.new("TextBox")
-    SearchBox.Name = "OptionSearch"
-    SearchBox.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-    SearchBox.BorderSizePixel = 0
-    SearchBox.Position = UDim2.new(1, -168, 0, 8)
-    SearchBox.Size = UDim2.new(0, 156, 0, 26)
-    SearchBox.Font = Library.Font
-    SearchBox.PlaceholderText = "Search..."
-    SearchBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 100)
-    SearchBox.Text = ""
-    SearchBox.TextColor3 = Color3.fromRGB(200, 200, 210)
-    SearchBox.TextSize = 12
-    SearchBox.TextXAlignment = Enum.TextXAlignment.Left
-    SearchBox.ClearTextOnFocus = false
-    SearchBox.ZIndex = 200
-    SearchBox.Parent = Inner
+    -- Prefer sidebar search under the title; otherwise create corner fallback
+    local SearchBox = Window.SidebarSearchBox
+    if not SearchBox then
+        SearchBox = Instance.new("TextBox")
+        SearchBox.Name = "OptionSearch"
+        SearchBox.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+        SearchBox.BorderSizePixel = 0
+        SearchBox.Position = UDim2.new(1, -168, 0, 8)
+        SearchBox.Size = UDim2.new(0, 156, 0, 26)
+        SearchBox.Font = Library.Font
+        SearchBox.PlaceholderText = "Search..."
+        SearchBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 100)
+        SearchBox.Text = ""
+        SearchBox.TextColor3 = Color3.fromRGB(200, 200, 210)
+        SearchBox.TextSize = 12
+        SearchBox.TextXAlignment = Enum.TextXAlignment.Left
+        SearchBox.ClearTextOnFocus = false
+        SearchBox.ZIndex = 200
+        SearchBox.Parent = Inner
 
-    local sbPad = Instance.new("UIPadding")
-    sbPad.PaddingLeft = UDim.new(0, 10)
-    sbPad.Parent = SearchBox
+        local sbPad = Instance.new("UIPadding")
+        sbPad.PaddingLeft = UDim.new(0, 10)
+        sbPad.Parent = SearchBox
 
-    local sbCorner = Instance.new("UICorner")
-    sbCorner.CornerRadius = UDim.new(0, 5)
-    sbCorner.Parent = SearchBox
+        local sbCorner = Instance.new("UICorner")
+        sbCorner.CornerRadius = UDim.new(0, 5)
+        sbCorner.Parent = SearchBox
+    end
 
     local Results = Instance.new("Frame")
     Results.Name = "SearchResults"
     Results.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
     Results.BorderColor3 = Library.AccentColor
     Results.BorderSizePixel = 1
-    Results.Position = UDim2.new(1, -200, 0, 38)
-    Results.Size = UDim2.new(0, 188, 0, 0)
+    -- Drop results under sidebar search when using it
+    if Window.SidebarSearchBox then
+        Results.Position = UDim2.new(0, 10, 0, 66)
+        Results.Size = UDim2.new(0, 132, 0, 0)
+    else
+        Results.Position = UDim2.new(1, -200, 0, 38)
+        Results.Size = UDim2.new(0, 188, 0, 0)
+    end
     Results.Visible = false
     Results.ZIndex = 210
     Results.ClipsDescendants = true
