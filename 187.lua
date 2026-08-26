@@ -6855,60 +6855,53 @@ function Library:CreateWindow(...)
             };
 
             local BoxOuter = Library:Create('Frame', {
-                BackgroundColor3 = Library.BackgroundColor;
-                BorderColor3 = Library.OutlineColor;
-                BorderMode = Enum.BorderMode.Inset;
+                BackgroundColor3 = Color3.fromRGB(20, 20, 24);
+                BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 0);
                 ZIndex = 2;
                 Parent = Info.Side == 1 and LeftSide or RightSide;
             });
 
-            -- Add corner rounding to tabbox
             Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 8);
+                CornerRadius = UDim.new(0, 6);
                 Parent = BoxOuter;
             });
 
             Library:AddToRegistry(BoxOuter, {
-                BackgroundColor3 = 'BackgroundColor';
-                BorderColor3 = 'OutlineColor';
+                BackgroundColor3 = 'MainColor';
             });
 
             local BoxInner = Library:Create('Frame', {
-                BackgroundColor3 = Library.BackgroundColor;
-                BorderColor3 = Color3.new(0, 0, 0);
-                Size = UDim2.new(1, -2, 1, -2);
-                Position = UDim2.new(0, 1, 0, 1);
+                BackgroundColor3 = Color3.fromRGB(20, 20, 24);
+                BorderSizePixel = 0;
+                Size = UDim2.new(1, 0, 1, 0);
+                Position = UDim2.new(0, 0, 0, 0);
                 ZIndex = 4;
                 Parent = BoxOuter;
             });
 
-            -- Add corner rounding to tabbox inner
             Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 8);
+                CornerRadius = UDim.new(0, 6);
                 Parent = BoxInner;
             });
 
             Library:AddToRegistry(BoxInner, {
-                BackgroundColor3 = 'BackgroundColor';
+                BackgroundColor3 = 'MainColor';
             });
 
+            -- No accent line on tabbox (cleaner)
             local Highlight = Library:Create('Frame', {
-                BackgroundColor3 = Library.AccentColor;
+                BackgroundTransparency = 1;
                 BorderSizePixel = 0;
-                Size = UDim2.new(1, 0, 0, 2);
-                ZIndex = 10;
+                Size = UDim2.new(0, 0, 0, 0);
+                ZIndex = 1;
                 Parent = BoxInner;
-            });
-
-            Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = 'AccentColor';
             });
 
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 0, 0, 1);
-                Size = UDim2.new(1, 0, 0, 18);
+                Position = UDim2.new(0, 4, 0, 4);
+                Size = UDim2.new(1, -8, 0, 22);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -6924,29 +6917,29 @@ function Library:CreateWindow(...)
                 local Tab = {};
 
                 local Button = Library:Create('Frame', {
-                    BackgroundColor3 = Library.MainColor;
-                    BorderColor3 = Color3.new(0, 0, 0);
-                    Size = UDim2.new(0.5, 0, 1, 0);
+                    BackgroundColor3 = Color3.fromRGB(26, 26, 30);
+                    BorderSizePixel = 0;
+                    Size = UDim2.new(0.5, -2, 1, 0);
                     ZIndex = 6;
                     Parent = TabboxButtons;
                 });
 
-                -- Add corner rounding to tab button
                 Library:Create('UICorner', {
                     CornerRadius = UDim.new(0, 4);
                     Parent = Button;
                 });
 
                 Library:AddToRegistry(Button, {
-                    BackgroundColor3 = 'MainColor';
+                    BackgroundColor3 = Color3.fromRGB(26, 26, 30);
                 });
 
                 local ButtonLabel = Library:CreateLabel({
                     Size = UDim2.new(1, 0, 1, 0);
-                    TextSize = 14;
+                    TextSize = 11;
                     Text = Name;
                     TextXAlignment = Enum.TextXAlignment.Center;
-                    RichText = true; -- Added to support color fonts
+                    TextColor3 = Color3.fromRGB(150, 150, 160);
+                    RichText = true;
                     ZIndex = 7;
                     Parent = Button;
                 });
@@ -6967,8 +6960,8 @@ function Library:CreateWindow(...)
 
                 local Container = Library:Create('Frame', {
                     BackgroundTransparency = 1;
-                    Position = UDim2.new(0, 4, 0, 20);
-                    Size = UDim2.new(1, -4, 1, -20);
+                    Position = UDim2.new(0, 8, 0, 28);
+                    Size = UDim2.new(1, -14, 1, -32);
                     ZIndex = 1;
                     Visible = false;
                     Parent = BoxInner;
@@ -6981,33 +6974,39 @@ function Library:CreateWindow(...)
                 });
 
                 function Tab:Show()
-                    for _, Tab in next, Tabbox.Tabs do
-                        Tab:Hide();
+                    for _, Other in next, Tabbox.Tabs do
+                        Other:Hide();
                     end;
 
                     Container.Visible = true;
-                    Block.Visible = true;
-                    Button.BackgroundColor3 = Library.BackgroundColor;
-                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
+                    Block.Visible = false;
+                    Button.BackgroundColor3 = Color3.fromRGB(32, 32, 38);
+                    if Library.RegistryMap[Button] then
+                        Library.RegistryMap[Button].Properties.BackgroundColor3 = nil;
+                    end
+                    ButtonLabel.TextColor3 = Color3.fromRGB(220, 220, 230);
                     Tab:Resize();
                 end;
 
                 function Tab:Hide()
                     Container.Visible = false;
                     Block.Visible = false;
-                    Button.BackgroundColor3 = Library.MainColor;
-                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
+                    Button.BackgroundColor3 = Color3.fromRGB(26, 26, 30);
+                    if Library.RegistryMap[Button] then
+                        Library.RegistryMap[Button].Properties.BackgroundColor3 = nil;
+                    end
+                    ButtonLabel.TextColor3 = Color3.fromRGB(150, 150, 160);
                 end;
 
                 function Tab:Resize()
                     local TabCount = 0;
-                    for _, Tab in next, Tabbox.Tabs do
+                    for _, _ in next, Tabbox.Tabs do
                         TabCount = TabCount + 1;
                     end;
 
-                    for _, Button in next, TabboxButtons:GetChildren() do
-                        if not Button:IsA('UIListLayout') then
-                            Button.Size = UDim2.new(1 / TabCount, 0, 1, 0);
+                    for _, Btn in next, TabboxButtons:GetChildren() do
+                        if not Btn:IsA('UIListLayout') then
+                            Btn.Size = UDim2.new(1 / math.max(TabCount, 1), -2, 1, 0);
                         end;
                     end;
 
@@ -7021,7 +7020,7 @@ function Library:CreateWindow(...)
                             Size = Size + Element.Size.Y.Offset;
                         end;
                     end;
-                    BoxOuter.Size = UDim2.new(1, 0, 0, (20 * DPIScale + Size) + 2 + 2);
+                    BoxOuter.Size = UDim2.new(1, 0, 0, (28 * DPIScale + Size) + 8);
                 end;
 
                 Button.InputBegan:Connect(function(Input)
