@@ -91,19 +91,19 @@ local Library = {
 
     HudRegistry = {};
 
-    FontColor = Color3.fromRGB(230, 230, 230);
-    MainColor = Color3.fromRGB(19, 19, 19);
-    BackgroundColor = Color3.fromRGB(16, 16, 16);
+    FontColor = Color3.fromRGB(200, 205, 210);
+    MainColor = Color3.fromRGB(24, 24, 29);
+    BackgroundColor = Color3.fromRGB(18, 18, 22);
 
-    AccentColor = Color3.fromRGB(5, 150, 255);
-    DisabledAccentColor = Color3.fromRGB(90, 90, 90);
+    AccentColor = Color3.fromRGB(130, 120, 220);
+    DisabledAccentColor = Color3.fromRGB(70, 68, 85);
 
-    OutlineColor = Color3.fromRGB(40, 40, 40);
-    DisabledOutlineColor = Color3.fromRGB(50, 50, 50);
+    OutlineColor = Color3.fromRGB(38, 38, 48);
+    DisabledOutlineColor = Color3.fromRGB(48, 48, 58);
 
-    DisabledTextColor = Color3.fromRGB(120, 120, 120);
+    DisabledTextColor = Color3.fromRGB(110, 110, 120);
 
-    RiskColor = Color3.fromRGB(255, 50, 50);
+    RiskColor = Color3.fromRGB(255, 70, 70);
 
     Black = Color3.new(0, 0, 0);
     Font = Enum.Font.GothamMedium,
@@ -3393,26 +3393,26 @@ do
         local Container = Groupbox.Container;
 
         local ToggleOuter = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 40);
+            BackgroundColor3 = Color3.fromRGB(38, 38, 48);
             BorderSizePixel = 0;
-            Size = UDim2.new(0, 16, 0, 16);
+            Size = UDim2.new(0, 15, 0, 15);
             Visible = Toggle.Visible;
             ZIndex = 5;
             Parent = Container;
         });
 
-        -- Modern square toggle with slight rounding
+        -- Susano-style rounded square toggle
         Library:Create('UICorner', {
             CornerRadius = UDim.new(0, 4);
             Parent = ToggleOuter;
         });
 
         Library:AddToRegistry(ToggleOuter, {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 40);
+            BackgroundColor3 = Color3.fromRGB(38, 38, 48);
         });
 
         local ToggleInner = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 40);
+            BackgroundColor3 = Color3.fromRGB(38, 38, 48);
             BorderSizePixel = 0;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
@@ -3425,7 +3425,7 @@ do
         });
 
         Library:AddToRegistry(ToggleInner, {
-            BackgroundColor3 = Color3.fromRGB(40, 40, 40);
+            BackgroundColor3 = Color3.fromRGB(38, 38, 48);
         });
 
         local ToggleLabel = Library:CreateLabel({
@@ -3482,7 +3482,7 @@ do
             if Toggle.Disabled then
                 ToggleLabel.TextColor3 = Library.DisabledTextColor;
 
-                ToggleInner.BackgroundColor3 = Toggle.Value and Library.DisabledAccentColor or Color3.fromRGB(40, 40, 40);
+                ToggleInner.BackgroundColor3 = Toggle.Value and Library.DisabledAccentColor or Color3.fromRGB(38, 38, 48);
                 ToggleOuter.BackgroundColor3 = ToggleInner.BackgroundColor3;
 
                 Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'DisabledAccentColor' or nil;
@@ -3491,10 +3491,10 @@ do
                 return;
             end;
 
-            ToggleLabel.TextColor3 = Toggle.Risky and Library.RiskColor or Color3.fromRGB(220, 220, 220);
+            ToggleLabel.TextColor3 = Toggle.Risky and Library.RiskColor or Color3.fromRGB(200, 205, 210);
 
             local onColor = Library.AccentColor;
-            local offColor = Color3.fromRGB(40, 40, 40);
+            local offColor = Color3.fromRGB(38, 38, 48);
 
             ToggleInner.BackgroundColor3 = Toggle.Value and onColor or offColor;
             ToggleOuter.BackgroundColor3 = ToggleInner.BackgroundColor3;
@@ -5682,7 +5682,7 @@ function Library:CreateWindow(...)
 
     local Outer = Library:Create('Frame', {
         AnchorPoint = Config.AnchorPoint;
-        BackgroundColor3 = Color3.fromRGB(16, 16, 16);
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
         BorderSizePixel = 0;
         Position = Config.Position;
         Size = Config.Size;
@@ -5691,25 +5691,25 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    -- Soft modern window rounding (matches target UI)
+    -- Susano-style soft rounded window
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 14);
+        CornerRadius = UDim.new(0, 12);
         Parent = Outer;
     });
 
-    -- Very subtle outer glow (almost invisible, just soft edge)
+    -- Subtle dark edge
     local GlowOutline = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(0, 0, 0);
-        BackgroundTransparency = 0.6;
+        BackgroundTransparency = 0.55;
         BorderSizePixel = 0;
-        Position = UDim2.new(-0.003, 0, -0.003, 0);
-        Size = UDim2.new(1.006, 0, 1.006, 0);
+        Position = UDim2.new(-0.002, 0, -0.002, 0);
+        Size = UDim2.new(1.004, 0, 1.004, 0);
         ZIndex = 0;
         Parent = Outer;
     });
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 16);
+        CornerRadius = UDim.new(0, 14);
         Parent = GlowOutline;
     });
 
@@ -5721,7 +5721,7 @@ function Library:CreateWindow(...)
     end
 
     local Inner = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(16, 16, 16);
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
         BorderSizePixel = 0;
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 1, 0);
@@ -5732,7 +5732,7 @@ function Library:CreateWindow(...)
     Window.Inner = Inner;
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 14);
+        CornerRadius = UDim.new(0, 12);
         Parent = Inner;
     });
 
@@ -5810,40 +5810,36 @@ function Library:CreateWindow(...)
         end;
     end);
 
-    -- MODIFIED: Main section with tabs at the top
+    -- Main content section (Susano-style)
     local MainSectionOuter = Library:Create('Frame', {
-        BackgroundColor3 = Library.BackgroundColor;
-        BorderColor3 = Library.OutlineColor;
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+        BorderSizePixel = 0;
         Position = UDim2.new(0, 8, 0, 30);
         Size = UDim2.new(1, -16, 1, -38);
         ZIndex = 1;
         Parent = Inner;
     });
 
-    -- Add corner rounding to main section
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 10);
+        CornerRadius = UDim.new(0, 8);
         Parent = MainSectionOuter;
     });
 
     Library:AddToRegistry(MainSectionOuter, {
         BackgroundColor3 = 'BackgroundColor';
-        BorderColor3 = 'OutlineColor';
     });
 
     local MainSectionInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.BackgroundColor;
-        BorderColor3 = Color3.new(0, 0, 0);
-        BorderMode = Enum.BorderMode.Inset;
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+        BorderSizePixel = 0;
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 1;
         Parent = MainSectionOuter;
     });
 
-    -- Add corner rounding to main section inner
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 10);
+        CornerRadius = UDim.new(0, 8);
         Parent = MainSectionInner;
     });
 
@@ -5851,10 +5847,10 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- MODIFIED: Top tabs area
+    -- Top tabs area (Susano sub-tab style)
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 10, 0, 8);
+        Position = UDim2.new(0, 10, 0, 6);
         Size = UDim2.new(1, -20, 0, 30);
         ZIndex = 2;
         Parent = MainSectionInner;
@@ -5869,32 +5865,30 @@ function Library:CreateWindow(...)
         Parent = TabArea;
     });
 
-    -- MODIFIED: Content area below tabs
+    -- Content area below tabs
     local ContentArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 45);
-        Size = UDim2.new(1, -16, 1, -53);
+        Position = UDim2.new(0, 8, 0, 42);
+        Size = UDim2.new(1, -16, 1, -50);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
 
     local TabContentContainer = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+        BorderSizePixel = 0;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 2;
         Parent = ContentArea;
     });
 
-    -- Add corner rounding to tab content container
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 10);
+        CornerRadius = UDim.new(0, 8);
         Parent = TabContentContainer;
     });
 
     Library:AddToRegistry(TabContentContainer, {
-        BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'OutlineColor';
+        BackgroundColor3 = 'BackgroundColor';
     });
 
     local InnerVideoBackground = Library:Create('VideoFrame', {
@@ -5950,7 +5944,7 @@ function Library:CreateWindow(...)
         local TabButtonWidth = Library:GetTextBounds(Tab.Name, Library.Font, 16) + 16;
         
         local TabButton = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+            BackgroundColor3 = Color3.fromRGB(24, 24, 29);
             BorderSizePixel = 0;
             Size = UDim2.new(0, TabButtonWidth, 0, 28);
             ZIndex = 3;
@@ -5963,7 +5957,7 @@ function Library:CreateWindow(...)
         });
 
         Library:AddToRegistry(TabButton, {
-            BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+            BackgroundColor3 = 'MainColor';
         });
 
         local TabButtonLabel = Library:CreateLabel({
@@ -6236,7 +6230,7 @@ function Library:CreateWindow(...)
             end;
 
             Blocker.BackgroundTransparency = 0;
-            TabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40);
+            TabButton.BackgroundColor3 = Color3.fromRGB(32, 32, 42);
             if Library.RegistryMap[TabButton] then
                 Library.RegistryMap[TabButton].Properties.BackgroundColor3 = nil;
             end
@@ -6247,7 +6241,7 @@ function Library:CreateWindow(...)
 
         function Tab:HideTab()
             Blocker.BackgroundTransparency = 1;
-            TabButton.BackgroundColor3 = Color3.fromRGB(24, 24, 24);
+            TabButton.BackgroundColor3 = Color3.fromRGB(22, 22, 26);
             if Library.RegistryMap[TabButton] then
                 Library.RegistryMap[TabButton].Properties.BackgroundColor3 = nil;
             end
@@ -6276,25 +6270,25 @@ function Library:CreateWindow(...)
             local Groupbox = {};
 
             local BoxOuter = Library:Create('Frame', {
-                BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+                BackgroundColor3 = Color3.fromRGB(24, 24, 29);
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 0, 507 + 2);
                 ZIndex = 2;
                 Parent = Info.Side == 1 and LeftSide or RightSide;
             });
 
-            -- Soft modern card rounding
+            -- Susano-style soft card
             Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 10);
+                CornerRadius = UDim.new(0, 8);
                 Parent = BoxOuter;
             });
 
             Library:AddToRegistry(BoxOuter, {
-                BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+                BackgroundColor3 = 'MainColor';
             });
 
             local BoxInner = Library:Create('Frame', {
-                BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+                BackgroundColor3 = Color3.fromRGB(24, 24, 29);
                 BorderSizePixel = 0;
                 Size = UDim2.new(1, 0, 1, 0);
                 Position = UDim2.new(0, 0, 0, 0);
@@ -6303,20 +6297,20 @@ function Library:CreateWindow(...)
             });
 
             Library:Create('UICorner', {
-                CornerRadius = UDim.new(0, 10);
+                CornerRadius = UDim.new(0, 8);
                 Parent = BoxInner;
             });
 
             Library:AddToRegistry(BoxInner, {
-                BackgroundColor3 = Color3.fromRGB(30, 30, 30);
+                BackgroundColor3 = 'MainColor';
             });
 
-            -- Subtle left accent bar instead of top highlight (matches modern card style)
+            -- No heavy accent bar — Susano uses clean section headers
             local Highlight = Library:Create('Frame', {
                 BackgroundColor3 = Library.AccentColor;
+                BackgroundTransparency = 1;
                 BorderSizePixel = 0;
-                Size = UDim2.new(0, 2, 1, -12);
-                Position = UDim2.new(0, 0, 0, 6);
+                Size = UDim2.new(0, 0, 0, 0);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -6326,12 +6320,12 @@ function Library:CreateWindow(...)
             });
 
             local GroupboxLabel = Library:CreateLabel({
-                Size = UDim2.new(1, -16, 0, 20);
-                Position = UDim2.new(0, 12, 0, 6);
-                TextSize = 14;
+                Size = UDim2.new(1, -20, 0, 18);
+                Position = UDim2.new(0, 12, 0, 8);
+                TextSize = 13;
                 Text = Info.Name;
-                TextXAlignment = Enum.TextXAlignment.Center;
-                TextColor3 = Color3.fromRGB(200, 200, 200);
+                TextXAlignment = Enum.TextXAlignment.Left;
+                TextColor3 = Color3.fromRGB(180, 185, 195);
                 RichText = true;
                 ZIndex = 5;
                 Parent = BoxInner;
@@ -6340,7 +6334,7 @@ function Library:CreateWindow(...)
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
                 Position = UDim2.new(0, 10, 0, 28);
-                Size = UDim2.new(1, -16, 1, -32);
+                Size = UDim2.new(1, -16, 1, -34);
                 ZIndex = 1;
                 Parent = BoxInner;
             });
