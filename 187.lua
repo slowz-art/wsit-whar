@@ -5655,9 +5655,9 @@ function Library:CreateWindow(...)
     if typeof(Config.Size) ~= 'UDim2' then
         if Library.IsMobile then
             local ViewportSizeYOffset = tonumber(workspace.CurrentCamera.ViewportSize.Y) - 35;
-            Config.Size = UDim2.fromOffset(600, math.clamp(ViewportSizeYOffset, 200, 600))
+            Config.Size = UDim2.fromOffset(700, math.clamp(ViewportSizeYOffset, 200, 600))
         else
-            Config.Size = UDim2.fromOffset(650, 550)
+            Config.Size = UDim2.fromOffset(800, 520)
         end
     end
 
@@ -5740,12 +5740,13 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    -- Title area (supports cycling words like 1up)
+    -- Title area (hidden in sidebar layout — title lives in sidebar header)
     local TitleContainer = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
         Position = UDim2.new(0, 10, 0, 4);
-        Size = UDim2.new(1, -120, 0, 22);
+        Size = UDim2.new(0, 0, 0, 0);
+        Visible = false;
         ClipsDescendants = true;
         ZIndex = 2;
         Parent = Inner;
@@ -5810,86 +5811,198 @@ function Library:CreateWindow(...)
         end;
     end);
 
-    -- Main content section (Susano-style)
-    local MainSectionOuter = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+    -- ========== SUSANO-STYLE LAYOUT ==========
+    -- Left sidebar (logo + search + vertical tabs) | right content
+    local SIDEBAR_WIDTH = 168;
+
+    -- Sidebar background
+    local Sidebar = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(22, 22, 27);
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16, 1, -38);
-        ZIndex = 1;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(0, SIDEBAR_WIDTH, 1, 0);
+        ZIndex = 2;
         Parent = Inner;
     });
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 8);
-        Parent = MainSectionOuter;
+        CornerRadius = UDim.new(0, 12);
+        Parent = Sidebar;
     });
 
-    Library:AddToRegistry(MainSectionOuter, {
-        BackgroundColor3 = 'BackgroundColor';
-    });
-
-    local MainSectionInner = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+    -- Square off the right edge of sidebar so it meets content cleanly
+    local SidebarCover = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(22, 22, 27);
         BorderSizePixel = 0;
+        Position = UDim2.new(1, -14, 0, 0);
+        Size = UDim2.new(0, 14, 1, 0);
+        ZIndex = 2;
+        Parent = Sidebar;
+    });
+
+    -- Divider between sidebar and content
+    local SidebarDivider = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(38, 38, 48);
+        BorderSizePixel = 0;
+        Position = UDim2.new(1, -1, 0, 0);
+        Size = UDim2.new(0, 1, 1, 0);
+        ZIndex = 4;
+        Parent = Sidebar;
+    });
+
+    -- Logo / title at top of sidebar
+    local SidebarHeader = Library:Create('Frame', {
+        BackgroundTransparency = 1;
         Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(1, 0, 1, 0);
-        ZIndex = 1;
-        Parent = MainSectionOuter;
+        Size = UDim2.new(1, 0, 0, 42);
+        ZIndex = 3;
+        Parent = Sidebar;
+    });
+
+    local SidebarTitle = Library:CreateLabel({
+        Position = UDim2.new(0, 14, 0, 11);
+        Size = UDim2.new(1, -24, 0, 22);
+        Text = (typeof(Config.Title) == "string" and Config.Title ~= " " and Config.Title ~= "" and Config.Title) or "Menu";
+        TextSize = 15;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        TextColor3 = Color3.fromRGB(220, 225, 235);
+        ZIndex = 4;
+        Parent = SidebarHeader;
+    });
+
+    -- ===== SEARCH (like Susano) =====
+    local SearchHolder = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(16, 16, 20);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 10, 0, 44);
+        Size = UDim2.new(1, -20, 0, 30);
+        ZIndex = 4;
+        Parent = Sidebar;
     });
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 8);
-        Parent = MainSectionInner;
+        CornerRadius = UDim.new(0, 6);
+        Parent = SearchHolder;
     });
 
-    Library:AddToRegistry(MainSectionInner, {
-        BackgroundColor3 = 'BackgroundColor';
+    local SearchIcon = Library:CreateLabel({
+        Position = UDim2.new(0, 8, 0, 0);
+        Size = UDim2.new(0, 18, 1, 0);
+        Text = "⌕";
+        TextSize = 14;
+        TextXAlignment = Enum.TextXAlignment.Center;
+        TextColor3 = Color3.fromRGB(110, 115, 130);
+        ZIndex = 5;
+        Parent = SearchHolder;
     });
 
-    -- Top tabs area (Susano sub-tab style)
-    local TabArea = Library:Create('Frame', {
+    local SidebarSearch = Library:Create('TextBox', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 10, 0, 6);
-        Size = UDim2.new(1, -20, 0, 30);
-        ZIndex = 2;
-        Parent = MainSectionInner;
+        Position = UDim2.new(0, 26, 0, 0);
+        Size = UDim2.new(1, -32, 1, 0);
+        Font = Library.Font;
+        Text = "";
+        PlaceholderText = "Search";
+        PlaceholderColor3 = Color3.fromRGB(100, 105, 120);
+        TextColor3 = Color3.fromRGB(200, 205, 215);
+        TextSize = 13;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ClearTextOnFocus = false;
+        ZIndex = 5;
+        Parent = SearchHolder;
+    });
+
+    Library:ApplyTextStroke(SidebarSearch);
+
+    -- Vertical tab list (below search)
+    local TabArea = Library:Create('ScrollingFrame', {
+        BackgroundTransparency = 1;
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 8, 0, 82);
+        Size = UDim2.new(1, -16, 1, -90);
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        ScrollBarThickness = 2;
+        ScrollBarImageColor3 = Color3.fromRGB(55, 55, 70);
+        BottomImage = '';
+        TopImage = '';
+        ZIndex = 3;
+        Parent = Sidebar;
     });
 
     local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, Config.TabPadding);
-        FillDirection = Enum.FillDirection.Horizontal;
+        Padding = UDim.new(0, 2);
+        FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
-        HorizontalAlignment = Enum.HorizontalAlignment.Left;
-        VerticalAlignment = Enum.VerticalAlignment.Center;
+        HorizontalAlignment = Enum.HorizontalAlignment.Center;
         Parent = TabArea;
     });
 
-    -- Content area below tabs
+    TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+        TabArea.CanvasSize = UDim2.fromOffset(0, TabListLayout.AbsoluteContentSize.Y + 6);
+    end);
+
+    -- Filter sidebar tabs by search text
+    local function FilterSidebarTabs(Query)
+        Query = string.lower(tostring(Query or ""));
+        for _, TabObj in pairs(Window.Tabs or {}) do
+            local btn = TabObj._TabButton;
+            if btn then
+                if Query == "" then
+                    btn.Visible = true;
+                else
+                    local name = string.lower(TabObj.Name or "");
+                    btn.Visible = string.find(name, Query, 1, true) ~= nil;
+                end
+            end
+        end
+    end
+
+    SidebarSearch:GetPropertyChangedSignal("Text"):Connect(function()
+        FilterSidebarTabs(SidebarSearch.Text);
+    end);
+
+    -- Right content area
     local ContentArea = Library:Create('Frame', {
-        BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 42);
-        Size = UDim2.new(1, -16, 1, -50);
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, SIDEBAR_WIDTH, 0, 0);
+        Size = UDim2.new(1, -SIDEBAR_WIDTH, 1, 0);
         ZIndex = 2;
-        Parent = MainSectionInner;
+        Parent = Inner;
+    });
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 12);
+        Parent = ContentArea;
+    });
+
+    local ContentCover = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(0, 14, 1, 0);
+        ZIndex = 2;
+        Parent = ContentArea;
     });
 
     local TabContentContainer = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(18, 18, 22);
         BorderSizePixel = 0;
+        Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 2;
         Parent = ContentArea;
     });
 
-    Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 8);
-        Parent = TabContentContainer;
-    });
-
     Library:AddToRegistry(TabContentContainer, {
         BackgroundColor3 = 'BackgroundColor';
     });
+
+    local MainSectionOuter = ContentArea;
+    local MainSectionInner = ContentArea;
+    Window.Sidebar = Sidebar;
+    Window.TabArea = TabArea;
+    Window.SidebarSearch = SidebarSearch;
 
     local InnerVideoBackground = Library:Create('VideoFrame', {
         BackgroundColor3 = Library.MainColor;
@@ -5932,7 +6045,7 @@ function Library:CreateWindow(...)
         end
     end;
 
-    -- MODIFIED: Updated AddTab for top tabs
+    -- Susano-style vertical sidebar tabs (icon + label + accent)
     function Window:AddTab(Name)
         local Tab = {
             Groupboxes = {};
@@ -5940,50 +6053,91 @@ function Library:CreateWindow(...)
             OriginalName = Name; Name = Name;
         };
 
-        -- Create top tab button
-        local TabButtonWidth = Library:GetTextBounds(Tab.Name, Library.Font, 16) + 16;
-        
         local TabButton = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(24, 24, 29);
+            BackgroundColor3 = Color3.fromRGB(22, 22, 27);
             BorderSizePixel = 0;
-            Size = UDim2.new(0, TabButtonWidth, 0, 28);
-            ZIndex = 3;
+            Size = UDim2.new(1, 0, 0, 36);
+            ZIndex = 4;
             Parent = TabArea;
         });
 
         Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 6);
+            CornerRadius = UDim.new(0, 7);
             Parent = TabButton;
         });
 
-        Library:AddToRegistry(TabButton, {
-            BackgroundColor3 = 'MainColor';
-        });
-
-        local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 4, 0, 2);
-            Size = UDim2.new(1, -8, 1, -4);
-            Text = Tab.Name;
-            TextSize = 14;
-            TextWrapped = false;
-            RichText = true; -- Added to support color fonts
-            ZIndex = 4;
-            Parent = TabButton;
-        });
-
-        local Blocker = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
-            BorderSizePixel = 0;
-            Position = UDim2.new(0, 0, 1, -1);
-            Size = UDim2.new(1, 0, 0, 1);
+        -- Left accent bar (visible when selected — like Susano)
+        local AccentBar = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
             BackgroundTransparency = 1;
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 0, 0.22, 0);
+            Size = UDim2.new(0, 3, 0.56, 0);
+            ZIndex = 6;
+            Parent = TabButton;
+        });
+
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(1, 0);
+            Parent = AccentBar;
+        });
+
+        Library:AddToRegistry(AccentBar, {
+            BackgroundColor3 = 'AccentColor';
+        });
+
+        -- Simple icon circle (placeholder glyph from first letter)
+        local IconCircle = Library:Create('Frame', {
+            BackgroundColor3 = Color3.fromRGB(35, 35, 45);
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 12, 0.5, -11);
+            Size = UDim2.new(0, 22, 0, 22);
             ZIndex = 5;
             Parent = TabButton;
         });
 
-        Library:AddToRegistry(Blocker, {
-            BackgroundColor3 = 'MainColor';
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(1, 0);
+            Parent = IconCircle;
         });
+
+        local IconLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 0, 0, 0);
+            Size = UDim2.new(1, 0, 1, 0);
+            Text = string.upper(string.sub(Name, 1, 1));
+            TextSize = 11;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            TextColor3 = Color3.fromRGB(140, 145, 160);
+            ZIndex = 6;
+            Parent = IconCircle;
+        });
+
+        local TabButtonLabel = Library:CreateLabel({
+            Position = UDim2.new(0, 42, 0, 0);
+            Size = UDim2.new(1, -50, 1, 0);
+            Text = Tab.Name;
+            TextSize = 13;
+            TextWrapped = false;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextColor3 = Color3.fromRGB(145, 150, 165);
+            RichText = true;
+            ZIndex = 5;
+            Parent = TabButton;
+        });
+
+        local Blocker = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            BorderSizePixel = 0;
+            Size = UDim2.new(0, 0, 0, 0);
+            ZIndex = 1;
+            Parent = TabButton;
+        });
+
+        Tab.AccentBar = AccentBar;
+        Tab.TabButtonLabel = TabButtonLabel;
+        Tab.IconCircle = IconCircle;
+        Tab.IconLabel = IconLabel;
+        Tab._TabButton = TabButton;
 
         -- Tab content frame
         local TabFrame = Library:Create('Frame', {
@@ -6225,26 +6379,27 @@ function Library:CreateWindow(...)
 
         function Tab:ShowTab()
             Library.ActiveTab = Name;
-            for _, Tab in next, Window.Tabs do
-                Tab:HideTab();
+            for _, OtherTab in next, Window.Tabs do
+                OtherTab:HideTab();
             end;
 
-            Blocker.BackgroundTransparency = 0;
-            TabButton.BackgroundColor3 = Color3.fromRGB(32, 32, 42);
-            if Library.RegistryMap[TabButton] then
-                Library.RegistryMap[TabButton].Properties.BackgroundColor3 = nil;
-            end
+            -- Selected (Susano style): soft bg, purple bar, bright text + icon
+            TabButton.BackgroundColor3 = Color3.fromRGB(32, 30, 45);
+            AccentBar.BackgroundTransparency = 0;
+            TabButtonLabel.TextColor3 = Color3.fromRGB(200, 195, 230);
+            IconCircle.BackgroundColor3 = Color3.fromRGB(50, 45, 75);
+            IconLabel.TextColor3 = Color3.fromRGB(180, 170, 230);
             TabFrame.Visible = true;
 
             Tab:Resize();
         end;
 
         function Tab:HideTab()
-            Blocker.BackgroundTransparency = 1;
-            TabButton.BackgroundColor3 = Color3.fromRGB(22, 22, 26);
-            if Library.RegistryMap[TabButton] then
-                Library.RegistryMap[TabButton].Properties.BackgroundColor3 = nil;
-            end
+            TabButton.BackgroundColor3 = Color3.fromRGB(22, 22, 27);
+            AccentBar.BackgroundTransparency = 1;
+            TabButtonLabel.TextColor3 = Color3.fromRGB(145, 150, 165);
+            IconCircle.BackgroundColor3 = Color3.fromRGB(35, 35, 45);
+            IconLabel.TextColor3 = Color3.fromRGB(140, 145, 160);
             TabFrame.Visible = false;
         end;
 
@@ -6257,12 +6412,10 @@ function Library:CreateWindow(...)
             return { ["Left"] = LeftSide, ["Right"] = RightSide };
         end;
 
-        function Tab:SetName(Name)
-            if typeof(Name) == "string" then
-                Tab.Name = Name;
-                local TabButtonWidth = Library:GetTextBounds(Tab.Name, Library.Font, 16) + 16;
-                TabButton.Size = UDim2.new(0, TabButtonWidth, 0, 25);
-                TabButtonLabel.Text = Tab.Name;
+        function Tab:SetName(NewName)
+            if typeof(NewName) == "string" then
+                Tab.Name = NewName;
+                TabButtonLabel.Text = NewName;
             end
         end;
 
@@ -6322,10 +6475,10 @@ function Library:CreateWindow(...)
             local GroupboxLabel = Library:CreateLabel({
                 Size = UDim2.new(1, -20, 0, 18);
                 Position = UDim2.new(0, 12, 0, 8);
-                TextSize = 13;
+                TextSize = 12;
                 Text = Info.Name;
                 TextXAlignment = Enum.TextXAlignment.Left;
-                TextColor3 = Color3.fromRGB(180, 185, 195);
+                TextColor3 = Color3.fromRGB(160, 165, 180);
                 RichText = true;
                 ZIndex = 5;
                 Parent = BoxInner;
@@ -6334,7 +6487,7 @@ function Library:CreateWindow(...)
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
                 Position = UDim2.new(0, 10, 0, 28);
-                Size = UDim2.new(1, -16, 1, -34);
+                Size = UDim2.new(1, -18, 1, -34);
                 ZIndex = 1;
                 Parent = BoxInner;
             });
