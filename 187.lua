@@ -91,11 +91,11 @@ local Library = {
 
     HudRegistry = {};
 
-    FontColor = Color3.fromRGB(210, 210, 215);
+    FontColor = Color3.fromRGB(220, 220, 225);
     MainColor = Color3.fromRGB(22, 22, 26);
     BackgroundColor = Color3.fromRGB(14, 14, 16);
 
-    AccentColor = Color3.fromRGB(120, 110, 200);
+    AccentColor = Color3.fromRGB(115, 105, 195);
     DisabledAccentColor = Color3.fromRGB(65, 65, 75);
 
     OutlineColor = Color3.fromRGB(36, 36, 42);
@@ -106,7 +106,7 @@ local Library = {
     RiskColor = Color3.fromRGB(220, 60, 60);
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Gotham,
+    Font = Enum.Font.MontserratMedium,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -291,11 +291,12 @@ end;
 
 function Library:ApplyTextStroke(Inst)
     Inst.TextStrokeTransparency = 1;
-
+    -- Subtle edge only — keeps text sharp without the heavy black outline
     return Library:Create('UIStroke', {
-        Color = Color3.new(0, 0, 0);
-        Thickness = 1;
-        LineJoinMode = Enum.LineJoinMode.Miter;
+        Color = Color3.fromRGB(0, 0, 0);
+        Transparency = 0.65;
+        Thickness = 0.8;
+        LineJoinMode = Enum.LineJoinMode.Round;
         Parent = Inst;
     });
 end;
@@ -305,9 +306,9 @@ function Library:CreateLabel(Properties, IsHud)
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
-        TextSize = 16;
-        TextStrokeTransparency = 0;
-        RichText = true; -- Added to support color fonts
+        TextSize = 13;
+        TextStrokeTransparency = 1;
+        RichText = true;
     });
 
     Library:ApplyTextStroke(_Instance);
@@ -3490,7 +3491,7 @@ do
                 return;
             end;
 
-            ToggleLabel.TextColor3 = Toggle.Risky and Library.RiskColor or Color3.fromRGB(200, 205, 210);
+            ToggleLabel.TextColor3 = Toggle.Risky and Library.RiskColor or Color3.fromRGB(215, 215, 220);
 
             local onColor = Library.AccentColor;
             local offColor = Color3.fromRGB(36, 36, 42);
@@ -5690,9 +5691,8 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    -- Susano-style soft rounded window
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 12);
+        CornerRadius = UDim.new(0, 10);
         Parent = Outer;
     });
 
@@ -5731,7 +5731,7 @@ function Library:CreateWindow(...)
     Window.Inner = Inner;
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 12);
+        CornerRadius = UDim.new(0, 10);
         Parent = Inner;
     });
 
@@ -5858,8 +5858,8 @@ function Library:CreateWindow(...)
             Size = UDim2.new(1, 0, 1, 0);
             Text = tostring(Text or '');
             TextXAlignment = Enum.TextXAlignment.Left;
-            TextSize = 14;
-            TextColor3 = Color3.fromRGB(210, 210, 220);
+            TextSize = 13;
+            TextColor3 = Color3.fromRGB(225, 225, 230);
             RichText = true;
             ZIndex = 5;
             Parent = SidebarTitleHolder;
@@ -6074,13 +6074,13 @@ function Library:CreateWindow(...)
         });
 
         local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 14, 0, 0);
-            Size = UDim2.new(1, -18, 1, 0);
+            Position = UDim2.new(0, 12, 0, 0);
+            Size = UDim2.new(1, -16, 1, 0);
             Text = Tab.Name;
-            TextSize = 13;
+            TextSize = 12;
             TextWrapped = false;
             TextXAlignment = Enum.TextXAlignment.Left;
-            TextColor3 = Color3.fromRGB(130, 130, 140);
+            TextColor3 = Color3.fromRGB(140, 140, 150);
             RichText = true;
             ZIndex = 5;
             Parent = TabButton;
@@ -6342,9 +6342,9 @@ function Library:CreateWindow(...)
                 OtherTab:HideTab();
             end;
 
-            TabButton.BackgroundColor3 = Color3.fromRGB(28, 28, 34);
+            TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 36);
             AccentBar.BackgroundTransparency = 0;
-            TabButtonLabel.TextColor3 = Color3.fromRGB(200, 200, 210);
+            TabButtonLabel.TextColor3 = Color3.fromRGB(230, 230, 235);
             TabFrame.Visible = true;
 
             Tab:Resize();
@@ -6353,7 +6353,7 @@ function Library:CreateWindow(...)
         function Tab:HideTab()
             TabButton.BackgroundColor3 = Color3.fromRGB(17, 17, 20);
             AccentBar.BackgroundTransparency = 1;
-            TabButtonLabel.TextColor3 = Color3.fromRGB(130, 130, 140);
+            TabButtonLabel.TextColor3 = Color3.fromRGB(140, 140, 150);
             TabFrame.Visible = false;
         end;
 
@@ -6426,11 +6426,11 @@ function Library:CreateWindow(...)
 
             local GroupboxLabel = Library:CreateLabel({
                 Size = UDim2.new(1, -16, 0, 16);
-                Position = UDim2.new(0, 10, 0, 8);
-                TextSize = 12;
+                Position = UDim2.new(0, 10, 0, 7);
+                TextSize = 11;
                 Text = Info.Name;
                 TextXAlignment = Enum.TextXAlignment.Left;
-                TextColor3 = Color3.fromRGB(140, 140, 150);
+                TextColor3 = Color3.fromRGB(155, 155, 165);
                 RichText = true;
                 ZIndex = 5;
                 Parent = BoxInner;
