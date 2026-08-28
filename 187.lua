@@ -5278,7 +5278,7 @@ do
         return Preview;
     end;
 
-    -- Aimbot preview: live character + invisible hit zones mapped to body parts
+    -- Aimbot preview: live character, hit targets track real body parts
     function BaseGroupboxFuncs:AddAimbotPreview(Name)
         local Groupbox = self;
         local Container = Groupbox.Container;
@@ -5290,56 +5290,55 @@ do
             Callback = nil;
         };
 
-        local PART_LABELS = {
-            Head = "Head";
-            UpperTorso = "Torso";
-            Torso = "Torso";
-            LeftUpperArm = "Left Arm";
-            ["Left Arm"] = "Left Arm";
-            RightUpperArm = "Right Arm";
-            ["Right Arm"] = "Right Arm";
-            LeftUpperLeg = "Left Leg";
-            ["Left Leg"] = "Left Leg";
-            RightUpperLeg = "Right Leg";
-            ["Right Leg"] = "Right Leg";
+        -- Slot definition: which real parts count, what aimbot gets, display label
+        local SLOTS = {
+            {
+                Id = "Head";
+                Aim = "Head";
+                Label = "Head";
+                Parts = { "Head" };
+            };
+            {
+                Id = "Torso";
+                Aim = "UpperTorso";
+                Label = "Torso";
+                Parts = { "UpperTorso", "LowerTorso", "Torso" };
+            };
+            {
+                Id = "LeftArm";
+                Aim = "LeftUpperArm";
+                Label = "Left Arm";
+                Parts = { "LeftUpperArm", "LeftLowerArm", "LeftHand", "Left Arm" };
+            };
+            {
+                Id = "RightArm";
+                Aim = "RightUpperArm";
+                Label = "Right Arm";
+                Parts = { "RightUpperArm", "RightLowerArm", "RightHand", "Right Arm" };
+            };
+            {
+                Id = "LeftLeg";
+                Aim = "LeftUpperLeg";
+                Label = "Left Leg";
+                Parts = { "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg" };
+            };
+            {
+                Id = "RightLeg";
+                Aim = "RightUpperLeg";
+                Label = "Right Leg";
+                Parts = { "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg" };
+            };
         };
 
-        -- Front-facing zones (camera looks at character from the front)
-        -- Screen-left = character's right arm, screen-right = character's left arm
-        local ZONES = {
-            { Slot = "Head";     X = 0.50; Y = 0.13; W = 0.24; H = 0.15 };
-            { Slot = "Torso";    X = 0.50; Y = 0.35; W = 0.30; H = 0.26 };
-            { Slot = "RightArm"; X = 0.22; Y = 0.35; W = 0.20; H = 0.30 };
-            { Slot = "LeftArm";  X = 0.78; Y = 0.35; W = 0.20; H = 0.30 };
-            { Slot = "RightLeg"; X = 0.37; Y = 0.70; W = 0.20; H = 0.32 };
-            { Slot = "LeftLeg";  X = 0.63; Y = 0.70; W = 0.20; H = 0.32 };
-        };
-
-        local SLOT_PARTS = {
-            Head = { "Head" };
-            Torso = { "UpperTorso", "LowerTorso", "Torso" };
-            LeftArm = { "LeftUpperArm", "LeftLowerArm", "LeftHand", "Left Arm" };
-            RightArm = { "RightUpperArm", "RightLowerArm", "RightHand", "Right Arm" };
-            LeftLeg = { "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg" };
-            RightLeg = { "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg" };
-        };
-
-        local SLOT_AIM = {
-            Head = "Head";
-            Torso = "UpperTorso";
-            LeftArm = "LeftUpperArm";
-            RightArm = "RightUpperArm";
-            LeftLeg = "LeftUpperLeg";
-            RightLeg = "RightUpperLeg";
-        };
-
-        local SelectedSlots = { Head = true };
+        local Selected = { Head = true };
+        local SlotById = {};
+        for _, s in ipairs(SLOTS) do SlotById[s.Id] = s end;
 
         local Holder = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
             BorderMode = Enum.BorderMode.Inset;
-            Size = UDim2.new(1, -4, 0, 270);
+            Size = UDim2.new(1, -4, 0, 280);
             ZIndex = 4;
             Parent = Container;
         });
@@ -5349,7 +5348,7 @@ do
         Library:CreateLabel({
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 8, 0, 5);
-            Size = UDim2.new(0.45, -8, 0, 16);
+            Size = UDim2.new(0.4, 0, 0, 16);
             Text = Name;
             TextSize = 12;
             TextXAlignment = Enum.TextXAlignment.Left;
@@ -5360,8 +5359,8 @@ do
 
         local TargetLabel = Library:CreateLabel({
             BackgroundTransparency = 1;
-            Position = UDim2.new(0.40, 0, 0, 5);
-            Size = UDim2.new(0.60, -10, 0, 16);
+            Position = UDim2.new(0.35, 0, 0, 5);
+            Size = UDim2.new(0.65, -10, 0, 16);
             Text = "Head";
             TextSize = 12;
             TextXAlignment = Enum.TextXAlignment.Right;
@@ -5385,24 +5384,25 @@ do
         local Viewport = Instance.new('ViewportFrame');
         Viewport.BackgroundTransparency = 1;
         Viewport.Size = UDim2.fromScale(1, 1);
+        Viewport.Position = UDim2.fromScale(0, 0);
         Viewport.ZIndex = 5;
         Viewport.BorderSizePixel = 0;
         Viewport.Ambient = Color3.fromRGB(200, 200, 210);
         Viewport.LightColor = Color3.fromRGB(255, 255, 255);
-        Viewport.LightDirection = Vector3.new(0, -1, -0.5);
+        Viewport.LightDirection = Vector3.new(0, -1, -0.4);
         Viewport.Parent = Bg;
 
         local HitLayer = Instance.new('Frame');
         HitLayer.BackgroundTransparency = 1;
         HitLayer.Size = UDim2.fromScale(1, 1);
-        HitLayer.ZIndex = 40;
+        HitLayer.ZIndex = 60;
         HitLayer.Parent = Bg;
 
         Library:CreateLabel({
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 6, 1, -22);
             Size = UDim2.new(1, -12, 0, 16);
-            Text = "Click head / arms / legs · again to remove";
+            Text = "Click a glowing part · click again to remove";
             TextSize = 11;
             TextColor3 = Color3.fromRGB(130, 130, 140);
             TextXAlignment = Enum.TextXAlignment.Center;
@@ -5414,59 +5414,65 @@ do
         Viewport.CurrentCamera = Cam;
         Cam.CameraType = Enum.CameraType.Scriptable;
 
-        -- Live character tracking (same idea as ESP preview)
         local PreviewModel = nil;
-        local RenderObjects = {}; -- original -> clone
-        local CloneToName = {};
-        local PartOriginal = {};
-        local OFFSET = CFrame.new(0, 1.4, -6.5); -- front of character
+        local RenderObjects = {}; -- original BasePart -> clone
+        local CloneName = {}; -- clone -> name
+        local OrigProps = {}; -- clone -> visual props
+        local SlotParts = {}; -- slotId -> { clone BaseParts }
+        local HitBtn = {}; -- slotId -> TextButton
+        local DirtyVisual = true;
 
         local ValidClasses = {
             MeshPart = true; Part = true; Accoutrement = true;
             Pants = true; Shirt = true; Humanoid = true; ShirtGraphic = true;
         };
 
-        local function clearViewport()
+        local function clearAll()
             RenderObjects = {};
-            CloneToName = {};
-            PartOriginal = {};
+            CloneName = {};
+            OrigProps = {};
+            SlotParts = {};
+            for _, b in pairs(HitBtn) do pcall(function() b:Destroy() end) end;
+            HitBtn = {};
             for _, c in ipairs(Viewport:GetChildren()) do
                 if not c:IsA('Camera') then c:Destroy() end;
             end
+            PreviewModel = nil;
         end
 
-        local function rebuildTargets()
-            local order = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" };
+        local function rebuildTargetList()
             local list = {};
-            for _, slot in ipairs(order) do
-                if SelectedSlots[slot] then
-                    table.insert(list, SLOT_AIM[slot] or slot);
+            for _, s in ipairs(SLOTS) do
+                if Selected[s.Id] then
+                    table.insert(list, s.Aim);
                 end
             end
             AimPreview.Targets = list;
             AimPreview.Target = list[1];
-            return list;
-        end
-
-        local function partMatchesSlot(name, slot)
-            for _, n in ipairs(SLOT_PARTS[slot] or {}) do
-                if n == name then return true end;
+            if #list == 0 then
+                TargetLabel.Text = "None";
+            else
+                local labels = {};
+                for _, s in ipairs(SLOTS) do
+                    if Selected[s.Id] then table.insert(labels, s.Label) end;
+                end
+                TargetLabel.Text = table.concat(labels, ", ");
             end
-            return false;
         end
 
-        local function applySelectionVisual()
-            rebuildTargets();
-            for orig, clone in pairs(RenderObjects) do
-                if clone and clone.Parent and clone:IsA('BasePart') then
-                    local name = CloneToName[clone] or (orig and orig.Name) or "";
-                    local props = PartOriginal[clone];
+        local function applyVisuals()
+            rebuildTargetList();
+            for clone, props in pairs(OrigProps) do
+                if clone and clone.Parent and clone:IsA("BasePart") then
+                    local name = CloneName[clone] or "";
                     local selected = false;
-                    for slot, on in pairs(SelectedSlots) do
-                        if on and partMatchesSlot(name, slot) then
-                            selected = true;
-                            break;
+                    for _, s in ipairs(SLOTS) do
+                        if Selected[s.Id] then
+                            for _, pn in ipairs(s.Parts) do
+                                if pn == name then selected = true; break end;
+                            end
                         end
+                        if selected then break end;
                     end
                     if selected then
                         clone.Color = Library.AccentColor;
@@ -5475,7 +5481,7 @@ do
                         pcall(function()
                             if clone:IsA("MeshPart") then clone.TextureID = "" end;
                         end);
-                    elseif props then
+                    else
                         clone.Color = props.Color;
                         clone.Material = props.Material;
                         clone.Transparency = props.Transparency;
@@ -5487,17 +5493,18 @@ do
                     end
                 end
             end
-
-            local list = AimPreview.Targets;
-            if #list == 0 then
-                TargetLabel.Text = "None";
-            else
-                local labels = {};
-                for _, n in ipairs(list) do
-                    table.insert(labels, PART_LABELS[n] or n);
+            for id, btn in pairs(HitBtn) do
+                if Selected[id] then
+                    btn.BackgroundColor3 = Library.AccentColor;
+                    btn.BackgroundTransparency = 0.35;
+                    btn.Text = "✓";
+                else
+                    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+                    btn.BackgroundTransparency = 0.75;
+                    btn.Text = "";
                 end
-                TargetLabel.Text = table.concat(labels, ", ");
             end
+            DirtyVisual = false;
         end
 
         local function fireChanged()
@@ -5506,48 +5513,85 @@ do
             end
         end
 
-        local function toggleSlot(slot)
-            if SelectedSlots[slot] then
-                SelectedSlots[slot] = nil;
+        local function toggleSlot(id)
+            if not SlotById[id] then return end;
+            if Selected[id] then
+                Selected[id] = nil;
             else
-                SelectedSlots[slot] = true;
+                Selected[id] = true;
             end
-            applySelectionVisual();
+            DirtyVisual = true;
+            applyVisuals();
             fireChanged();
-            local aim = SLOT_AIM[slot] or slot;
-            if SelectedSlots[slot] then
-                Library:Notify("Aim + " .. (PART_LABELS[aim] or aim), 0.8);
+            local s = SlotById[id];
+            if Selected[id] then
+                Library:Notify("Aim + " .. s.Label, 0.7);
             else
-                Library:Notify(#(AimPreview.Targets) == 0 and "Aim cleared" or ("Aim - " .. (PART_LABELS[aim] or aim)), 0.8);
+                Library:Notify(#(AimPreview.Targets or {}) == 0 and "Aim cleared" or ("Aim - " .. s.Label), 0.7);
             end
         end
 
         function AimPreview:SetTarget(partName)
-            SelectedSlots = {};
+            Selected = {};
             if typeof(partName) == "string" and partName ~= "" then
-                for slot, names in pairs(SLOT_PARTS) do
-                    if slot == partName then SelectedSlots[slot] = true end;
-                    for _, n in ipairs(names) do
-                        if n == partName then SelectedSlots[slot] = true end;
+                for _, s in ipairs(SLOTS) do
+                    if s.Id == partName or s.Aim == partName or s.Label == partName then
+                        Selected[s.Id] = true;
+                    end
+                    for _, pn in ipairs(s.Parts) do
+                        if pn == partName then Selected[s.Id] = true end;
                     end
                 end
             end
-            applySelectionVisual();
+            DirtyVisual = true;
+            applyVisuals();
             fireChanged();
         end
 
-        function AimPreview:GetTarget()
-            return AimPreview.Target;
-        end
-
-        function AimPreview:GetTargets()
-            return AimPreview.Targets;
-        end
-
+        function AimPreview:GetTarget() return AimPreview.Target end;
+        function AimPreview:GetTargets() return AimPreview.Targets end;
         function AimPreview:OnChanged(fn)
-            if typeof(fn) == "function" then
-                AimPreview.Callback = fn;
-            end
+            if typeof(fn) == "function" then AimPreview.Callback = fn end;
+        end
+
+        local function makeHit(id)
+            local btn = Instance.new("TextButton");
+            btn.Name = "Hit_" .. id;
+            btn.AnchorPoint = Vector2.new(0.5, 0.5);
+            btn.Size = UDim2.fromOffset(34, 34);
+            btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+            btn.BackgroundTransparency = 0.75;
+            btn.BorderSizePixel = 0;
+            btn.Text = "";
+            btn.TextSize = 14;
+            btn.Font = Enum.Font.GothamBold;
+            btn.TextColor3 = Color3.new(1, 1, 1);
+            btn.AutoButtonColor = false;
+            btn.Visible = false;
+            btn.ZIndex = 70;
+            btn.Parent = HitLayer;
+
+            local c = Instance.new("UICorner");
+            c.CornerRadius = UDim.new(1, 0);
+            c.Parent = btn;
+
+            local st = Instance.new("UIStroke");
+            st.Thickness = 1.5;
+            st.Color = Library.AccentColor;
+            st.Transparency = 0.3;
+            st.Parent = btn;
+
+            btn.MouseButton1Click:Connect(function()
+                toggleSlot(id);
+            end);
+            btn.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Touch then
+                    toggleSlot(id);
+                end
+            end);
+
+            HitBtn[id] = btn;
+            return btn;
         end
 
         local function addObject(Object)
@@ -5558,10 +5602,10 @@ do
             Object.Archivable = was;
             if not ok or not Clone then return end;
 
-            if Object:IsA('BasePart') then
+            if Object:IsA("BasePart") then
                 RenderObjects[Object] = Clone;
-                CloneToName[Clone] = Object.Name;
-                PartOriginal[Clone] = {
+                CloneName[Clone] = Object.Name;
+                OrigProps[Clone] = {
                     Color = Object.Color;
                     Material = Object.Material;
                     Transparency = Object.Transparency;
@@ -5569,16 +5613,25 @@ do
                 };
                 Clone.Anchored = true;
                 Clone.CanCollide = false;
-            elseif Object:IsA('Accoutrement') then
-                local h, ch = Object:FindFirstChild('Handle'), Clone:FindFirstChild('Handle');
+
+                for _, s in ipairs(SLOTS) do
+                    for _, pn in ipairs(s.Parts) do
+                        if Object.Name == pn then
+                            SlotParts[s.Id] = SlotParts[s.Id] or {};
+                            table.insert(SlotParts[s.Id], Clone);
+                        end
+                    end
+                end
+            elseif Object:IsA("Accoutrement") then
+                local h, ch = Object:FindFirstChild("Handle"), Clone:FindFirstChild("Handle");
                 if h and ch then
                     RenderObjects[h] = ch;
-                    CloneToName[ch] = "__Acc";
-                    PartOriginal[ch] = { Color = ch.Color; Material = ch.Material; Transparency = ch.Transparency };
+                    CloneName[ch] = "__Acc";
+                    OrigProps[ch] = { Color = ch.Color; Material = ch.Material; Transparency = ch.Transparency };
                     ch.Anchored = true;
                     ch.CanCollide = false;
                 end
-            elseif Object:IsA('Humanoid') then
+            elseif Object:IsA("Humanoid") then
                 for _, st in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
                     pcall(function() Clone:SetStateEnabled(st, false) end);
                 end
@@ -5588,91 +5641,110 @@ do
         end
 
         function AimPreview:BuildFromModel(Model)
-            clearViewport();
+            clearAll();
             PreviewModel = Model;
             if not Model then return end;
 
-            local Viewmodel = Instance.new('Model');
-            Viewmodel.Name = 'AimViewmodel';
-            Viewmodel.Parent = Viewport;
+            -- R6 aim name overrides
+            if Model:FindFirstChild("Torso") and not Model:FindFirstChild("UpperTorso") then
+                SlotById.Torso.Aim = "Torso";
+            end
+            if Model:FindFirstChild("Left Arm") then
+                SlotById.LeftArm.Aim = "Left Arm";
+                SlotById.RightArm.Aim = "Right Arm";
+                SlotById.LeftLeg.Aim = "Left Leg";
+                SlotById.RightLeg.Aim = "Right Leg";
+            end
+
+            local vm = Instance.new("Model");
+            vm.Name = "AimViewmodel";
+            vm.Parent = Viewport;
 
             for _, Object in ipairs(Model:GetDescendants()) do
                 local Clone = addObject(Object);
-                if Clone then Clone.Parent = Viewmodel end;
+                if Clone then Clone.Parent = vm end;
             end
 
-            if Model:FindFirstChild("Torso") and not Model:FindFirstChild("UpperTorso") then
-                SLOT_AIM.Torso = "Torso";
-            end
-            if Model:FindFirstChild("Left Arm") then
-                SLOT_AIM.LeftArm = "Left Arm";
-                SLOT_AIM.RightArm = "Right Arm";
-                SLOT_AIM.LeftLeg = "Left Leg";
-                SLOT_AIM.RightLeg = "Right Leg";
-            end
-
-            for Original, Clone in pairs(RenderObjects) do
-                if Original and Original.Parent and Clone then
-                    pcall(function() Clone.CFrame = Original.CFrame end);
+            for _, s in ipairs(SLOTS) do
+                if SlotParts[s.Id] and #SlotParts[s.Id] > 0 then
+                    makeHit(s.Id);
                 end
             end
 
-            applySelectionVisual();
+            DirtyVisual = true;
+            applyVisuals();
         end
 
-        -- Invisible hit zones (no gray boxes) — mapped to body regions
-        for _, z in ipairs(ZONES) do
-            local btn = Instance.new('TextButton');
-            btn.Name = "Zone_" .. z.Slot;
-            btn.AnchorPoint = Vector2.new(0.5, 0.5);
-            btn.Position = UDim2.fromScale(z.X, z.Y);
-            btn.Size = UDim2.fromScale(z.W, z.H);
-            btn.BackgroundTransparency = 1; -- fully invisible
-            btn.BorderSizePixel = 0;
-            btn.Text = "";
-            btn.AutoButtonColor = false;
-            btn.ZIndex = 50;
-            btn.Parent = HitLayer;
-
-            local slot = z.Slot;
-            btn.MouseButton1Click:Connect(function()
-                toggleSlot(slot);
-            end);
-            btn.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    toggleSlot(slot);
-                end
-            end);
+        local function primaryClone(id)
+            local list = SlotParts[id];
+            if not list or #list == 0 then return nil end;
+            local prefer = SlotById[id] and SlotById[id].Parts[1];
+            for _, c in ipairs(list) do
+                if c.Name == prefer then return c end;
+            end
+            return list[1];
         end
 
-        -- Live sync + camera in front of character
         Library:GiveSignal(RunService.RenderStepped:Connect(function()
             if not PreviewModel or not Holder.Parent then return end;
-            local Root = PreviewModel:FindFirstChild("HumanoidRootPart");
-            if not Root then return end;
+            local root = PreviewModel:FindFirstChild("HumanoidRootPart");
+            if not root then return end;
 
-            -- Camera in front of player looking at them
-            local camPos = Root.CFrame:PointToWorldSpace(Vector3.new(0, 1.5, -6.5));
-            local lookAt = Root.Position + Vector3.new(0, 1.2, 0);
-            Cam.CFrame = CFrame.lookAt(camPos, lookAt);
+            -- Camera in front of character
+            local camPos = root.CFrame:PointToWorldSpace(Vector3.new(0, 1.5, -6.2));
+            Cam.CFrame = CFrame.lookAt(camPos, root.Position + Vector3.new(0, 1.1, 0));
 
-            for Original, Clone in pairs(RenderObjects) do
-                if Original and Original.Parent and Clone and Clone.Parent then
-                    pcall(function() Clone.CFrame = Original.CFrame end);
+            for orig, clone in pairs(RenderObjects) do
+                if orig and orig.Parent and clone and clone.Parent then
+                    pcall(function() clone.CFrame = orig.CFrame end);
                 end
             end
 
-            applySelectionVisual();
+            local size = Viewport.AbsoluteSize;
+            if size.X < 4 or size.Y < 4 then return end;
+
+            local btnSize = math.clamp(math.floor(math.min(size.X, size.Y) * 0.13), 28, 42);
+
+            for id, btn in pairs(HitBtn) do
+                local part = primaryClone(id);
+                if not part then
+                    btn.Visible = false;
+                    continue;
+                end
+
+                local ok, sp = pcall(function()
+                    return Cam:WorldToViewportPoint(part.Position);
+                end);
+
+                if ok and typeof(sp) == "Vector3" and sp.Z > 0 then
+                    -- ViewportFrame WorldToViewportPoint is already in local viewport pixels
+                    local x = sp.X;
+                    local y = sp.Y;
+                    if x > -btnSize and y > -btnSize and x < size.X + btnSize and y < size.Y + btnSize then
+                        btn.Position = UDim2.fromOffset(x, y);
+                        btn.Size = UDim2.fromOffset(btnSize, btnSize);
+                        btn.Visible = true;
+                    else
+                        btn.Visible = false;
+                    end
+                else
+                    btn.Visible = false;
+                end
+            end
+
+            if DirtyVisual then
+                applyVisuals();
+            end
         end));
 
         task.spawn(function()
             local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait();
-            task.wait(0.25);
+            task.wait(0.3);
             AimPreview:BuildFromModel(char);
         end);
 
         Library:GiveSignal(LocalPlayer.CharacterAdded:Connect(function(char)
-            task.wait(0.45);
+            task.wait(0.5);
             AimPreview:BuildFromModel(char);
         end));
 
