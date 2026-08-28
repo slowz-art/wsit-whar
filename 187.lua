@@ -5243,18 +5243,8 @@ do
         Name = typeof(Name) == "string" and Name or "Aimbot Preview";
 
         local AimPreview = {
-            Target = "Head"; -- default aim part
-            Callback = nil;  -- function(partName)
-        };
-
-        local PART_ORDER = {
-            "Head",
-            "UpperTorso", "LowerTorso", "Torso",
-            "LeftUpperArm", "LeftLowerArm", "LeftHand", "Left Arm",
-            "RightUpperArm", "RightLowerArm", "RightHand", "Right Arm",
-            "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg",
-            "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg",
-            "HumanoidRootPart",
+            Target = "Head";
+            Callback = nil;
         };
 
         local PART_LABELS = {
@@ -5262,30 +5252,40 @@ do
             UpperTorso = "Upper Torso";
             LowerTorso = "Lower Torso";
             Torso = "Torso";
-            LeftUpperArm = "Left Upper Arm";
-            LeftLowerArm = "Left Lower Arm";
+            LeftUpperArm = "Left Arm";
+            LeftLowerArm = "Left Arm";
             LeftHand = "Left Hand";
             ["Left Arm"] = "Left Arm";
-            RightUpperArm = "Right Upper Arm";
-            RightLowerArm = "Right Lower Arm";
+            RightUpperArm = "Right Arm";
+            RightLowerArm = "Right Arm";
             RightHand = "Right Hand";
             ["Right Arm"] = "Right Arm";
-            LeftUpperLeg = "Left Upper Leg";
-            LeftLowerLeg = "Left Lower Leg";
+            LeftUpperLeg = "Left Leg";
+            LeftLowerLeg = "Left Leg";
             LeftFoot = "Left Foot";
             ["Left Leg"] = "Left Leg";
-            RightUpperLeg = "Right Upper Leg";
-            RightLowerLeg = "Right Lower Leg";
+            RightUpperLeg = "Right Leg";
+            RightLowerLeg = "Right Leg";
             RightFoot = "Right Foot";
             ["Right Leg"] = "Right Leg";
-            HumanoidRootPart = "Root / Center";
+            HumanoidRootPart = "Center";
+        };
+
+        local SELECTABLE = {
+            Head = true;
+            UpperTorso = true; LowerTorso = true; Torso = true;
+            LeftUpperArm = true; LeftLowerArm = true; LeftHand = true; ["Left Arm"] = true;
+            RightUpperArm = true; RightLowerArm = true; RightHand = true; ["Right Arm"] = true;
+            LeftUpperLeg = true; LeftLowerLeg = true; LeftFoot = true; ["Left Leg"] = true;
+            RightUpperLeg = true; RightLowerLeg = true; RightFoot = true; ["Right Leg"] = true;
+            HumanoidRootPart = true;
         };
 
         local Holder = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
             BorderMode = Enum.BorderMode.Inset;
-            Size = UDim2.new(1, -4, 0, 240);
+            Size = UDim2.new(1, -4, 0, 250);
             ZIndex = 4;
             Parent = Container;
         });
@@ -5302,21 +5302,21 @@ do
 
         Library:CreateLabel({
             BackgroundTransparency = 1;
-            Position = UDim2.new(0, 8, 0, 4);
-            Size = UDim2.new(1, -16, 0, 16);
+            Position = UDim2.new(0, 8, 0, 5);
+            Size = UDim2.new(0.5, -12, 0, 16);
             Text = Name;
-            TextSize = 13;
+            TextSize = 12;
             TextXAlignment = Enum.TextXAlignment.Left;
-            TextTransparency = 0.25;
+            TextColor3 = Color3.fromRGB(160, 160, 170);
             ZIndex = 5;
             Parent = Holder;
         });
 
         local TargetLabel = Library:CreateLabel({
             BackgroundTransparency = 1;
-            Position = UDim2.new(0, 8, 0, 4);
-            Size = UDim2.new(1, -16, 0, 16);
-            Text = "Target: Head";
+            Position = UDim2.new(0.45, 0, 0, 5);
+            Size = UDim2.new(0.55, -10, 0, 16);
+            Text = "Head";
             TextSize = 12;
             TextXAlignment = Enum.TextXAlignment.Right;
             TextColor3 = Library.AccentColor;
@@ -5326,10 +5326,11 @@ do
         Library:AddToRegistry(TargetLabel, { TextColor3 = 'AccentColor' });
 
         local Bg = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+            BackgroundColor3 = Color3.fromRGB(16, 16, 20);
             BorderSizePixel = 0;
             Position = UDim2.new(0, 6, 0, 24);
-            Size = UDim2.new(1, -12, 1, -30);
+            Size = UDim2.new(1, -12, 1, -48);
+            ClipsDescendants = true;
             ZIndex = 5;
             Parent = Holder;
         });
@@ -5338,33 +5339,34 @@ do
             Parent = Bg;
         });
 
-        local Viewport = Library:Create('ViewportFrame', {
-            BackgroundTransparency = 1;
-            Size = UDim2.fromScale(1, 1);
-            ZIndex = 5;
-            BorderSizePixel = 0;
-            Parent = Bg;
-        });
+        local Viewport = Instance.new('ViewportFrame');
+        Viewport.BackgroundTransparency = 1;
+        Viewport.Size = UDim2.fromScale(1, 1);
+        Viewport.ZIndex = 5;
+        Viewport.BorderSizePixel = 0;
+        Viewport.Ambient = Color3.fromRGB(180, 180, 190);
+        Viewport.LightColor = Color3.fromRGB(255, 255, 255);
+        Viewport.LightDirection = Vector3.new(0, -1, -1);
+        Viewport.Parent = Bg;
 
-        -- Click catcher over the viewport (mouse + touch)
-        local ClickLayer = Library:Create('TextButton', {
-            BackgroundTransparency = 1;
-            Size = UDim2.fromScale(1, 1);
-            Text = "";
-            ZIndex = 60;
-            Parent = Bg;
-        });
+        local ClickLayer = Instance.new('TextButton');
+        ClickLayer.BackgroundTransparency = 1;
+        ClickLayer.Size = UDim2.fromScale(1, 1);
+        ClickLayer.Text = "";
+        ClickLayer.ZIndex = 20;
+        ClickLayer.AutoButtonColor = false;
+        ClickLayer.Parent = Bg;
 
-        local HintLabel = Library:CreateLabel({
+        Library:CreateLabel({
             BackgroundTransparency = 1;
-            Position = UDim2.new(0, 6, 1, -20);
+            Position = UDim2.new(0, 6, 1, -22);
             Size = UDim2.new(1, -12, 0, 16);
-            Text = "Click / tap a body part to set aim target";
+            Text = "Click a body part to set aim target";
             TextSize = 11;
-            TextColor3 = Color3.fromRGB(140, 140, 150);
+            TextColor3 = Color3.fromRGB(130, 130, 140);
             TextXAlignment = Enum.TextXAlignment.Center;
-            ZIndex = 61;
-            Parent = Bg;
+            ZIndex = 5;
+            Parent = Holder;
         });
 
         local ViewportCamera = Instance.new('Camera');
@@ -5372,45 +5374,49 @@ do
         ViewportCamera.CameraType = Enum.CameraType.Scriptable;
 
         local PreviewModel = nil;
-        local RenderObjects = {}; -- original BasePart -> clone BasePart
-        local CloneToName = {};   -- clone BasePart -> part name
-        local Connections = {};
-        local OFFSET = CFrame.new(0, 2.2, -7.5);
-        local SelectedHighlight = nil; -- SelectionBox on selected clone part
+        local RenderObjects = {};
+        local CloneToName = {};
+        local PartOriginalColor = {};
+        local OFFSET = CFrame.new(0, 1.8, -6.5);
 
         local ValidClasses = {
             MeshPart = true; Part = true; Accoutrement = true;
             Pants = true; Shirt = true; Humanoid = true;
+            ShirtGraphic = true;
         };
 
         local function clearViewport()
             RenderObjects = {};
             CloneToName = {};
+            PartOriginalColor = {};
             for _, Obj in ipairs(Viewport:GetChildren()) do
                 if not Obj:IsA('Camera') then
                     Obj:Destroy();
                 end;
             end;
-            SelectedHighlight = nil;
         end
 
         local function applySelectionVisual(partName)
-            -- Tint all body parts dim, selected bright accent
             for orig, clone in pairs(RenderObjects) do
                 if clone and clone.Parent and clone:IsA('BasePart') then
-                    local name = CloneToName[clone] or orig.Name;
+                    local name = CloneToName[clone] or (orig and orig.Name);
                     if name == partName then
                         clone.Color = Library.AccentColor;
-                        clone.Material = Enum.Material.Neon;
-                        clone.Transparency = 0.15;
-                    else
-                        clone.Color = Color3.fromRGB(55, 55, 65);
                         clone.Material = Enum.Material.SmoothPlastic;
-                        clone.Transparency = 0.35;
+                        clone.Transparency = 0;
+                    else
+                        local base = PartOriginalColor[clone];
+                        if base then
+                            clone.Color = Color3.new(base.R * 0.35, base.G * 0.35, base.B * 0.35);
+                        else
+                            clone.Color = Color3.fromRGB(50, 50, 58);
+                        end
+                        clone.Material = Enum.Material.SmoothPlastic;
+                        clone.Transparency = 0.2;
                     end
                 end
             end
-            TargetLabel.Text = "Target: " .. (PART_LABELS[partName] or partName);
+            TargetLabel.Text = PART_LABELS[partName] or partName;
         end
 
         function AimPreview:SetTarget(partName)
@@ -5436,21 +5442,25 @@ do
             if not Object or not ValidClasses[Object.ClassName] then return end;
             local was = Object.Archivable;
             Object.Archivable = true;
-            local Clone = Object:Clone();
+            local ok, Clone = pcall(function() return Object:Clone() end);
             Object.Archivable = was;
+            if not ok or not Clone then return end;
 
             if Object:IsA('BasePart') then
                 RenderObjects[Object] = Clone;
                 CloneToName[Clone] = Object.Name;
-                -- make clickable visually
-                Clone.Color = Color3.fromRGB(55, 55, 65);
-                Clone.Material = Enum.Material.SmoothPlastic;
-                Clone.Transparency = 0.35;
+                PartOriginalColor[Clone] = Object.Color;
+                Clone.Anchored = true;
+                Clone.CanCollide = false;
             elseif Object:IsA('Accoutrement') then
-                if Object:FindFirstChild('Handle') and Clone:FindFirstChild('Handle') then
-                    RenderObjects[Object.Handle] = Clone.Handle;
-                    CloneToName[Clone.Handle] = "Head"; -- hats aim as head-ish, skip selection usually
-                    Clone.Handle.Transparency = 1;
+                local handle = Object:FindFirstChild('Handle');
+                local cloneHandle = Clone:FindFirstChild('Handle');
+                if handle and cloneHandle then
+                    RenderObjects[handle] = cloneHandle;
+                    CloneToName[cloneHandle] = "Head";
+                    PartOriginalColor[cloneHandle] = cloneHandle.Color;
+                    cloneHandle.Anchored = true;
+                    cloneHandle.CanCollide = false;
                 end
             elseif Object:IsA('Humanoid') then
                 for _, st in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
@@ -5463,9 +5473,6 @@ do
 
         function AimPreview:BuildFromModel(Model)
             clearViewport();
-            for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end;
-            Connections = {};
-
             PreviewModel = Model;
             if not Model then return end;
 
@@ -5478,109 +5485,106 @@ do
                 if Clone then Clone.Parent = Viewmodel end;
             end
 
+            for Original, Clone in pairs(RenderObjects) do
+                if Original and Original.Parent and Clone then
+                    pcall(function() Clone.CFrame = Original.CFrame end);
+                end
+            end
+
             applySelectionVisual(AimPreview.Target);
         end
 
-        -- Pick body part from click: project parts to 2D + ray distance
-        local function pickPartAt(screenPos)
-            local absPos = ClickLayer.AbsolutePosition;
-            local absSize = ClickLayer.AbsoluteSize;
-            if absSize.X <= 0 or absSize.Y <= 0 then return nil end;
+        local function pickPartAt(guiX, guiY)
+            local absPos = Viewport.AbsolutePosition;
+            local absSize = Viewport.AbsoluteSize;
+            if absSize.X < 1 or absSize.Y < 1 then return nil end;
 
-            local relX = (screenPos.X - absPos.X) / absSize.X;
-            local relY = (screenPos.Y - absPos.Y) / absSize.Y;
-            if relX < 0 or relX > 1 or relY < 0 or relY > 1 then return nil end;
+            local relX = guiX - absPos.X;
+            local relY = guiY - absPos.Y;
+            if relX < 0 or relY < 0 or relX > absSize.X or relY > absSize.Y then
+                return nil;
+            end
 
             local cam = ViewportCamera;
             if not cam then return nil end;
 
-            local vpSize = Viewport.AbsoluteSize;
-            local clickPx = Vector2.new(relX * vpSize.X, relY * vpSize.Y);
-            local ray = cam:ViewportPointToRay(clickPx.X, clickPx.Y);
-
-            local bestName, bestScore = nil, math.huge;
+            local clickPx = Vector2.new(relX, relY);
+            local bestName, bestScore = nil, 48;
 
             for orig, clone in pairs(RenderObjects) do
-                if clone and clone.Parent and clone:IsA('BasePart') and clone.Transparency < 0.95 then
-                    local name = CloneToName[clone] or orig.Name;
-                    if name == "Handle" then continue end;
+                if clone and clone.Parent and clone:IsA('BasePart') then
+                    local name = CloneToName[clone] or (orig and orig.Name);
+                    if not SELECTABLE[name] then continue end;
 
-                    -- 3D ray proximity
-                    local toPart = clone.Position - ray.Origin;
-                    local proj = toPart:Dot(ray.Direction.Unit);
-                    local rayScore = math.huge;
-                    if proj > 0 then
-                        local closestPoint = ray.Origin + ray.Direction.Unit * proj;
-                        local dist3 = (closestPoint - clone.Position).Magnitude;
-                        local radius = math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 0.65;
-                        if dist3 <= radius then
-                            rayScore = dist3 + proj * 0.01;
-                        end
-                    end
-
-                    -- 2D screen proximity fallback
-                    local ok, screenPt, onScreen = pcall(function()
+                    local ok, screenPt = pcall(function()
                         return cam:WorldToViewportPoint(clone.Position);
                     end);
-                    local screenScore = math.huge;
-                    if ok and onScreen and screenPt.Z > 0 then
-                        local d2 = (Vector2.new(screenPt.X, screenPt.Y) - clickPx).Magnitude;
-                        local partPx = math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 18;
-                        if d2 <= partPx then
-                            screenScore = d2;
+                    if ok and screenPt and screenPt.Z > 0 then
+                        local d = (Vector2.new(screenPt.X, screenPt.Y) - clickPx).Magnitude;
+                        local radius = math.clamp(math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 24, 16, 52);
+                        if d <= radius and d < bestScore then
+                            bestScore = d;
+                            bestName = name;
                         end
-                    end
-
-                    local score = math.min(rayScore, screenScore);
-                    if score < bestScore then
-                        bestScore = score;
-                        bestName = name;
                     end
                 end
             end
-
             return bestName;
         end
 
-        local function onClick(inputPos)
-            local partName = pickPartAt(inputPos);
+        local function handleClick(x, y)
+            local partName = pickPartAt(x, y);
             if partName then
                 AimPreview:SetTarget(partName);
-                Library:Notify("Aim target: " .. (PART_LABELS[partName] or partName), 1.2);
+                Library:Notify("Aim → " .. (PART_LABELS[partName] or partName), 1.2);
             end
         end
 
-        ClickLayer.MouseButton1Click:Connect(function()
-            local m = InputService:GetMouseLocation();
-            onClick(Vector2.new(m.X, m.Y - (game:GetService("GuiService").TopbarInset.Height or 0)));
+        ClickLayer.MouseButton1Down:Connect(function()
+            local loc = InputService:GetMouseLocation();
+            local inset = 0;
+            pcall(function()
+                inset = game:GetService("GuiService"):GetGuiInset().Y;
+            end);
+            handleClick(loc.X, loc.Y - inset);
         end);
 
         ClickLayer.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch
-                or input.UserInputType == Enum.UserInputType.MouseButton1 then
-                local p = input.Position;
-                onClick(Vector2.new(p.X, p.Y));
+            if input.UserInputType == Enum.UserInputType.Touch then
+                handleClick(input.Position.X, input.Position.Y);
+            elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                handleClick(input.Position.X, input.Position.Y);
             end
         end);
 
-        Library:GiveSignal(RunService.Heartbeat:Connect(function()
-            if not PreviewModel or not Holder.Parent or not Holder.Visible then return end;
+        Library:GiveSignal(RunService.RenderStepped:Connect(function()
+            if not PreviewModel or not Holder.Parent then return end;
+
             local Root = PreviewModel:FindFirstChild('HumanoidRootPart');
             if not Root then return end;
-            ViewportCamera.CFrame = CFrame.new(Root.CFrame:ToWorldSpace(OFFSET).Position, Root.Position);
+
+            ViewportCamera.CFrame = CFrame.new(
+                Root.CFrame:ToWorldSpace(OFFSET).Position,
+                Root.Position + Vector3.new(0, 0.5, 0)
+            );
+
             for Original, Clone in pairs(RenderObjects) do
-                if Original and Original.Parent then
+                if Original and Original.Parent and Clone and Clone.Parent then
                     pcall(function() Clone.CFrame = Original.CFrame end);
                 end
             end
+
+            applySelectionVisual(AimPreview.Target);
         end));
 
         task.spawn(function()
             local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait();
+            task.wait(0.15);
             AimPreview:BuildFromModel(Character);
         end);
+
         Library:GiveSignal(LocalPlayer.CharacterAdded:Connect(function(char)
-            task.wait(0.3);
+            task.wait(0.4);
             AimPreview:BuildFromModel(char);
         end));
 
