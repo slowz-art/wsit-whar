@@ -106,7 +106,7 @@ local Library = {
     RiskColor = Color3.fromRGB(225, 65, 65);
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.MontserratMedium,
+    Font = Enum.Font.GothamMedium,
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -129,6 +129,9 @@ local Library = {
     ShowToggleFrameInKeybinds = true;
     NotifyOnError = false; -- true = Library:Notify for SafeCallback (still warns in the developer console)
 
+    StreamerMode = false; -- hides player name/avatar in sidebar footer
+    CustomDisplayName = nil; -- optional override for the sidebar name
+
     VideoLink = "";
     TotalTabs = 0;
 
@@ -141,7 +144,7 @@ local Library = {
 
 pcall(function() Library.DevicePlatform = InputService:GetPlatform(); end); -- For safety so the UI library doesn't error.
 Library.IsMobile = (Library.DevicePlatform == Enum.Platform.Android or Library.DevicePlatform == Enum.Platform.IOS);
-Library.MinSize = if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300);
+Library.MinSize = if Library.IsMobile then Vector2.new(580, 220) else Vector2.new(620, 340);
 
 local RainbowStep = 0
 local Hue = 0
@@ -231,7 +234,7 @@ function Library:SetDPIScale(value: number)
     assert(type(value) == "number", "Expected type number for DPI scale but got " .. typeof(value))
     
     DPIScale = value / 100;
-    Library.MinSize = (if Library.IsMobile then Vector2.new(550, 200) else Vector2.new(550, 300)) * DPIScale;
+    Library.MinSize = (if Library.IsMobile then Vector2.new(580, 220) else Vector2.new(620, 340)) * DPIScale;
 end;
 
 function Library:SafeCallback(Func, ...)
@@ -5651,13 +5654,13 @@ function Library:CreateWindow(...)
     if typeof(Config.NotifySide) ~= "string" then Library.NotifySide = 'Left' else Library.NotifySide = Config.NotifySide end
     if typeof(Config.ShowCustomCursor) ~= 'boolean' then Library.ShowCustomCursor = false else Library.ShowCustomCursor = Config.ShowCustomCursor end
 
-    if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
+    if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(160, 45) end
     if typeof(Config.Size) ~= 'UDim2' then
         if Library.IsMobile then
             local ViewportSizeYOffset = tonumber(workspace.CurrentCamera.ViewportSize.Y) - 35;
-            Config.Size = UDim2.fromOffset(640, math.clamp(ViewportSizeYOffset, 200, 580))
+            Config.Size = UDim2.fromOffset(700, math.clamp(ViewportSizeYOffset, 220, 620))
         else
-            Config.Size = UDim2.fromOffset(640, 560)
+            Config.Size = UDim2.fromOffset(720, 600)
         end
     end
 
@@ -5819,7 +5822,8 @@ function Library:CreateWindow(...)
     end);
 
     -- ========== SIDEBAR + CONTENT LAYOUT ==========
-    local SIDEBAR_WIDTH = 152;
+    local SIDEBAR_WIDTH = 164;
+    local FOOTER_HEIGHT = 52;
 
     local Sidebar = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(17, 17, 20);
@@ -5935,12 +5939,12 @@ function Library:CreateWindow(...)
     Library:ApplyTextStroke(SidebarSearchBox);
     Window.SidebarSearchBox = SidebarSearchBox;
 
-    -- Tab list below search
+    -- Tab list below search (leaves room for player footer)
     local TabArea = Library:Create('ScrollingFrame', {
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 8, 0, 70);
-        Size = UDim2.new(1, -14, 1, -78);
+        Position = UDim2.new(0, 8, 0, 72);
+        Size = UDim2.new(1, -14, 1, -(78 + FOOTER_HEIGHT));
         CanvasSize = UDim2.new(0, 0, 0, 0);
         ScrollBarThickness = 0;
         BottomImage = '';
@@ -5950,7 +5954,7 @@ function Library:CreateWindow(...)
     });
 
     local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, 1);
+        Padding = UDim.new(0, 2);
         FillDirection = Enum.FillDirection.Vertical;
         SortOrder = Enum.SortOrder.LayoutOrder;
         HorizontalAlignment = Enum.HorizontalAlignment.Left;
@@ -5960,6 +5964,152 @@ function Library:CreateWindow(...)
     TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
         TabArea.CanvasSize = UDim2.fromOffset(0, TabListLayout.AbsoluteContentSize.Y + 4);
     end);
+
+    -- ========== PLAYER FOOTER (bottom of sidebar) ==========
+    local PlayerFooter = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(15, 15, 18);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 0, 1, -FOOTER_HEIGHT);
+        Size = UDim2.new(1, 0, 0, FOOTER_HEIGHT);
+        ZIndex = 5;
+        Parent = Sidebar;
+    });
+
+    local FooterTopLine = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(32, 32, 38);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(1, 0, 0, 1);
+        ZIndex = 6;
+        Parent = PlayerFooter;
+    });
+
+    local AvatarHolder = Library:Create('Frame', {
+        BackgroundColor3 = Color3.fromRGB(28, 28, 34);
+        BorderSizePixel = 0;
+        Position = UDim2.new(0, 10, 0.5, -14);
+        Size = UDim2.new(0, 28, 0, 28);
+        ZIndex = 6;
+        Parent = PlayerFooter;
+    });
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 6);
+        Parent = AvatarHolder;
+    });
+
+    local AvatarImage = Library:Create('ImageLabel', {
+        BackgroundTransparency = 1;
+        Size = UDim2.new(1, 0, 1, 0);
+        Image = "";
+        ZIndex = 7;
+        Parent = AvatarHolder;
+    });
+
+    Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, 6);
+        Parent = AvatarImage;
+    });
+
+    local NameBox = Library:Create('TextBox', {
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0, 44, 0, 8);
+        Size = UDim2.new(1, -54, 0, 18);
+        Font = Library.Font;
+        Text = LocalPlayer.DisplayName or LocalPlayer.Name;
+        PlaceholderText = "Display name...";
+        PlaceholderColor3 = Color3.fromRGB(90, 90, 100);
+        TextColor3 = Color3.fromRGB(220, 220, 228);
+        TextSize = 12;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        TextTruncate = Enum.TextTruncate.AtEnd;
+        ClearTextOnFocus = false;
+        ZIndex = 6;
+        Parent = PlayerFooter;
+    });
+
+    Library:ApplyTextStroke(NameBox);
+
+    local SubLabel = Library:CreateLabel({
+        Position = UDim2.new(0, 44, 0, 26);
+        Size = UDim2.new(1, -54, 0, 14);
+        Text = "@" .. LocalPlayer.Name;
+        TextSize = 10;
+        TextColor3 = Color3.fromRGB(120, 120, 130);
+        TextXAlignment = Enum.TextXAlignment.Left;
+        TextTruncate = Enum.TextTruncate.AtEnd;
+        ZIndex = 6;
+        Parent = PlayerFooter;
+    });
+
+    -- Load avatar thumbnail
+    task.spawn(function()
+        local ok, content = pcall(function()
+            return Players:GetUserThumbnailAsync(
+                LocalPlayer.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size48x48
+            );
+        end);
+        if ok and content and AvatarImage and AvatarImage.Parent then
+            AvatarImage.Image = content;
+        end;
+    end);
+
+    local function refreshFooterDisplay()
+        if Library.StreamerMode then
+            PlayerFooter.Visible = false;
+            return;
+        end;
+        PlayerFooter.Visible = true;
+        local display = Library.CustomDisplayName;
+        if typeof(display) ~= "string" or display == "" then
+            display = LocalPlayer.DisplayName or LocalPlayer.Name;
+        end;
+        NameBox.Text = display;
+        SubLabel.Text = "@" .. LocalPlayer.Name;
+    end;
+
+    NameBox.FocusLost:Connect(function(enter)
+        local text = tostring(NameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "");
+        if text == "" then
+            Library.CustomDisplayName = nil;
+        else
+            Library.CustomDisplayName = text;
+        end;
+        refreshFooterDisplay();
+        Library:AttemptSave();
+    end);
+
+    function Library:SetStreamerMode(Enabled)
+        Library.StreamerMode = not not Enabled;
+        refreshFooterDisplay();
+        Library:AttemptSave();
+    end;
+
+    function Library:SetDisplayName(Name)
+        if typeof(Name) == "string" and Name ~= "" then
+            Library.CustomDisplayName = Name;
+        else
+            Library.CustomDisplayName = nil;
+        end;
+        refreshFooterDisplay();
+        Library:AttemptSave();
+    end;
+
+    function Library:GetDisplayName()
+        if Library.StreamerMode then
+            return "Hidden";
+        end;
+        if typeof(Library.CustomDisplayName) == "string" and Library.CustomDisplayName ~= "" then
+            return Library.CustomDisplayName;
+        end;
+        return LocalPlayer.DisplayName or LocalPlayer.Name;
+    end;
+
+    Window.PlayerFooter = PlayerFooter;
+    Window.NameBox = NameBox;
+    refreshFooterDisplay();
 
     local ContentArea = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(14, 14, 16);
@@ -6455,8 +6605,8 @@ function Library:CreateWindow(...)
 
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 8, 0, 26);
-                Size = UDim2.new(1, -14, 1, -30);
+                Position = UDim2.new(0, 10, 0, 28);
+                Size = UDim2.new(1, -18, 1, -34);
                 ZIndex = 1;
                 Parent = BoxInner;
             });
@@ -6464,6 +6614,7 @@ function Library:CreateWindow(...)
             Library:Create('UIListLayout', {
                 FillDirection = Enum.FillDirection.Vertical;
                 SortOrder = Enum.SortOrder.LayoutOrder;
+                Padding = UDim.new(0, 1);
                 Parent = Container;
             });
 
@@ -6474,14 +6625,14 @@ function Library:CreateWindow(...)
                         Size = Size + Element.Size.Y.Offset;
                     end;
                 end;
-                -- Header ~28px + padding
-                BoxOuter.Size = UDim2.new(1, 0, 0, (28 * DPIScale + Size) + 8);
+                -- Header ~30px + padding
+                BoxOuter.Size = UDim2.new(1, 0, 0, (30 * DPIScale + Size) + 10);
             end;
 
             Groupbox.Container = Container;
             setmetatable(Groupbox, BaseGroupbox);
 
-            Groupbox:AddBlank(3);
+            Groupbox:AddBlank(4);
             Groupbox:Resize();
 
             Tab.Groupboxes[Info.Name] = Groupbox;
