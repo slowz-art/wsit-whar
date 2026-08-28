@@ -5236,6 +5236,360 @@ do
         return Preview;
     end;
 
+    -- Aimbot hitbox preview: click / tap a body part to set aim target
+    function BaseGroupboxFuncs:AddAimbotPreview(Name)
+        local Groupbox = self;
+        local Container = Groupbox.Container;
+        Name = typeof(Name) == "string" and Name or "Aimbot Preview";
+
+        local AimPreview = {
+            Target = "Head"; -- default aim part
+            Callback = nil;  -- function(partName)
+        };
+
+        local PART_ORDER = {
+            "Head",
+            "UpperTorso", "LowerTorso", "Torso",
+            "LeftUpperArm", "LeftLowerArm", "LeftHand", "Left Arm",
+            "RightUpperArm", "RightLowerArm", "RightHand", "Right Arm",
+            "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg",
+            "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg",
+            "HumanoidRootPart",
+        };
+
+        local PART_LABELS = {
+            Head = "Head";
+            UpperTorso = "Upper Torso";
+            LowerTorso = "Lower Torso";
+            Torso = "Torso";
+            LeftUpperArm = "Left Upper Arm";
+            LeftLowerArm = "Left Lower Arm";
+            LeftHand = "Left Hand";
+            ["Left Arm"] = "Left Arm";
+            RightUpperArm = "Right Upper Arm";
+            RightLowerArm = "Right Lower Arm";
+            RightHand = "Right Hand";
+            ["Right Arm"] = "Right Arm";
+            LeftUpperLeg = "Left Upper Leg";
+            LeftLowerLeg = "Left Lower Leg";
+            LeftFoot = "Left Foot";
+            ["Left Leg"] = "Left Leg";
+            RightUpperLeg = "Right Upper Leg";
+            RightLowerLeg = "Right Lower Leg";
+            RightFoot = "Right Foot";
+            ["Right Leg"] = "Right Leg";
+            HumanoidRootPart = "Root / Center";
+        };
+
+        local Holder = Library:Create('Frame', {
+            BackgroundColor3 = Library.MainColor;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            Size = UDim2.new(1, -4, 0, 240);
+            ZIndex = 4;
+            Parent = Container;
+        });
+
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(0, 6);
+            Parent = Holder;
+        });
+
+        Library:AddToRegistry(Holder, {
+            BackgroundColor3 = 'MainColor';
+            BorderColor3 = 'OutlineColor';
+        });
+
+        Library:CreateLabel({
+            BackgroundTransparency = 1;
+            Position = UDim2.new(0, 8, 0, 4);
+            Size = UDim2.new(1, -16, 0, 16);
+            Text = Name;
+            TextSize = 13;
+            TextXAlignment = Enum.TextXAlignment.Left;
+            TextTransparency = 0.25;
+            ZIndex = 5;
+            Parent = Holder;
+        });
+
+        local TargetLabel = Library:CreateLabel({
+            BackgroundTransparency = 1;
+            Position = UDim2.new(0, 8, 0, 4);
+            Size = UDim2.new(1, -16, 0, 16);
+            Text = "Target: Head";
+            TextSize = 12;
+            TextXAlignment = Enum.TextXAlignment.Right;
+            TextColor3 = Library.AccentColor;
+            ZIndex = 6;
+            Parent = Holder;
+        });
+        Library:AddToRegistry(TargetLabel, { TextColor3 = 'AccentColor' });
+
+        local Bg = Library:Create('Frame', {
+            BackgroundColor3 = Color3.fromRGB(18, 18, 22);
+            BorderSizePixel = 0;
+            Position = UDim2.new(0, 6, 0, 24);
+            Size = UDim2.new(1, -12, 1, -30);
+            ZIndex = 5;
+            Parent = Holder;
+        });
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(0, 5);
+            Parent = Bg;
+        });
+
+        local Viewport = Library:Create('ViewportFrame', {
+            BackgroundTransparency = 1;
+            Size = UDim2.fromScale(1, 1);
+            ZIndex = 5;
+            BorderSizePixel = 0;
+            Parent = Bg;
+        });
+
+        -- Click catcher over the viewport (mouse + touch)
+        local ClickLayer = Library:Create('TextButton', {
+            BackgroundTransparency = 1;
+            Size = UDim2.fromScale(1, 1);
+            Text = "";
+            ZIndex = 60;
+            Parent = Bg;
+        });
+
+        local HintLabel = Library:CreateLabel({
+            BackgroundTransparency = 1;
+            Position = UDim2.new(0, 6, 1, -20);
+            Size = UDim2.new(1, -12, 0, 16);
+            Text = "Click / tap a body part to set aim target";
+            TextSize = 11;
+            TextColor3 = Color3.fromRGB(140, 140, 150);
+            TextXAlignment = Enum.TextXAlignment.Center;
+            ZIndex = 61;
+            Parent = Bg;
+        });
+
+        local ViewportCamera = Instance.new('Camera');
+        Viewport.CurrentCamera = ViewportCamera;
+        ViewportCamera.CameraType = Enum.CameraType.Scriptable;
+
+        local PreviewModel = nil;
+        local RenderObjects = {}; -- original BasePart -> clone BasePart
+        local CloneToName = {};   -- clone BasePart -> part name
+        local Connections = {};
+        local OFFSET = CFrame.new(0, 2.2, -7.5);
+        local SelectedHighlight = nil; -- SelectionBox on selected clone part
+
+        local ValidClasses = {
+            MeshPart = true; Part = true; Accoutrement = true;
+            Pants = true; Shirt = true; Humanoid = true;
+        };
+
+        local function clearViewport()
+            RenderObjects = {};
+            CloneToName = {};
+            for _, Obj in ipairs(Viewport:GetChildren()) do
+                if not Obj:IsA('Camera') then
+                    Obj:Destroy();
+                end;
+            end;
+            SelectedHighlight = nil;
+        end
+
+        local function applySelectionVisual(partName)
+            -- Tint all body parts dim, selected bright accent
+            for orig, clone in pairs(RenderObjects) do
+                if clone and clone.Parent and clone:IsA('BasePart') then
+                    local name = CloneToName[clone] or orig.Name;
+                    if name == partName then
+                        clone.Color = Library.AccentColor;
+                        clone.Material = Enum.Material.Neon;
+                        clone.Transparency = 0.15;
+                    else
+                        clone.Color = Color3.fromRGB(55, 55, 65);
+                        clone.Material = Enum.Material.SmoothPlastic;
+                        clone.Transparency = 0.35;
+                    end
+                end
+            end
+            TargetLabel.Text = "Target: " .. (PART_LABELS[partName] or partName);
+        end
+
+        function AimPreview:SetTarget(partName)
+            if typeof(partName) ~= "string" or partName == "" then return end;
+            AimPreview.Target = partName;
+            applySelectionVisual(partName);
+            if typeof(AimPreview.Callback) == "function" then
+                Library:SafeCallback(AimPreview.Callback, partName);
+            end
+        end
+
+        function AimPreview:GetTarget()
+            return AimPreview.Target;
+        end
+
+        function AimPreview:OnChanged(fn)
+            if typeof(fn) == "function" then
+                AimPreview.Callback = fn;
+            end
+        end
+
+        local function addObject(Object)
+            if not Object or not ValidClasses[Object.ClassName] then return end;
+            local was = Object.Archivable;
+            Object.Archivable = true;
+            local Clone = Object:Clone();
+            Object.Archivable = was;
+
+            if Object:IsA('BasePart') then
+                RenderObjects[Object] = Clone;
+                CloneToName[Clone] = Object.Name;
+                -- make clickable visually
+                Clone.Color = Color3.fromRGB(55, 55, 65);
+                Clone.Material = Enum.Material.SmoothPlastic;
+                Clone.Transparency = 0.35;
+            elseif Object:IsA('Accoutrement') then
+                if Object:FindFirstChild('Handle') and Clone:FindFirstChild('Handle') then
+                    RenderObjects[Object.Handle] = Clone.Handle;
+                    CloneToName[Clone.Handle] = "Head"; -- hats aim as head-ish, skip selection usually
+                    Clone.Handle.Transparency = 1;
+                end
+            elseif Object:IsA('Humanoid') then
+                for _, st in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+                    pcall(function() Clone:SetStateEnabled(st, false) end);
+                end
+                Clone.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None;
+            end
+            return Clone;
+        end
+
+        function AimPreview:BuildFromModel(Model)
+            clearViewport();
+            for _, c in ipairs(Connections) do pcall(function() c:Disconnect() end) end;
+            Connections = {};
+
+            PreviewModel = Model;
+            if not Model then return end;
+
+            local Viewmodel = Instance.new('Model');
+            Viewmodel.Name = 'AimViewmodel';
+            Viewmodel.Parent = Viewport;
+
+            for _, Object in ipairs(Model:GetDescendants()) do
+                local Clone = addObject(Object);
+                if Clone then Clone.Parent = Viewmodel end;
+            end
+
+            applySelectionVisual(AimPreview.Target);
+        end
+
+        -- Pick body part from click: project parts to 2D + ray distance
+        local function pickPartAt(screenPos)
+            local absPos = ClickLayer.AbsolutePosition;
+            local absSize = ClickLayer.AbsoluteSize;
+            if absSize.X <= 0 or absSize.Y <= 0 then return nil end;
+
+            local relX = (screenPos.X - absPos.X) / absSize.X;
+            local relY = (screenPos.Y - absPos.Y) / absSize.Y;
+            if relX < 0 or relX > 1 or relY < 0 or relY > 1 then return nil end;
+
+            local cam = ViewportCamera;
+            if not cam then return nil end;
+
+            local vpSize = Viewport.AbsoluteSize;
+            local clickPx = Vector2.new(relX * vpSize.X, relY * vpSize.Y);
+            local ray = cam:ViewportPointToRay(clickPx.X, clickPx.Y);
+
+            local bestName, bestScore = nil, math.huge;
+
+            for orig, clone in pairs(RenderObjects) do
+                if clone and clone.Parent and clone:IsA('BasePart') and clone.Transparency < 0.95 then
+                    local name = CloneToName[clone] or orig.Name;
+                    if name == "Handle" then continue end;
+
+                    -- 3D ray proximity
+                    local toPart = clone.Position - ray.Origin;
+                    local proj = toPart:Dot(ray.Direction.Unit);
+                    local rayScore = math.huge;
+                    if proj > 0 then
+                        local closestPoint = ray.Origin + ray.Direction.Unit * proj;
+                        local dist3 = (closestPoint - clone.Position).Magnitude;
+                        local radius = math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 0.65;
+                        if dist3 <= radius then
+                            rayScore = dist3 + proj * 0.01;
+                        end
+                    end
+
+                    -- 2D screen proximity fallback
+                    local ok, screenPt, onScreen = pcall(function()
+                        return cam:WorldToViewportPoint(clone.Position);
+                    end);
+                    local screenScore = math.huge;
+                    if ok and onScreen and screenPt.Z > 0 then
+                        local d2 = (Vector2.new(screenPt.X, screenPt.Y) - clickPx).Magnitude;
+                        local partPx = math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 18;
+                        if d2 <= partPx then
+                            screenScore = d2;
+                        end
+                    end
+
+                    local score = math.min(rayScore, screenScore);
+                    if score < bestScore then
+                        bestScore = score;
+                        bestName = name;
+                    end
+                end
+            end
+
+            return bestName;
+        end
+
+        local function onClick(inputPos)
+            local partName = pickPartAt(inputPos);
+            if partName then
+                AimPreview:SetTarget(partName);
+                Library:Notify("Aim target: " .. (PART_LABELS[partName] or partName), 1.2);
+            end
+        end
+
+        ClickLayer.MouseButton1Click:Connect(function()
+            local m = InputService:GetMouseLocation();
+            onClick(Vector2.new(m.X, m.Y - (game:GetService("GuiService").TopbarInset.Height or 0)));
+        end);
+
+        ClickLayer.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch
+                or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local p = input.Position;
+                onClick(Vector2.new(p.X, p.Y));
+            end
+        end);
+
+        Library:GiveSignal(RunService.Heartbeat:Connect(function()
+            if not PreviewModel or not Holder.Parent or not Holder.Visible then return end;
+            local Root = PreviewModel:FindFirstChild('HumanoidRootPart');
+            if not Root then return end;
+            ViewportCamera.CFrame = CFrame.new(Root.CFrame:ToWorldSpace(OFFSET).Position, Root.Position);
+            for Original, Clone in pairs(RenderObjects) do
+                if Original and Original.Parent then
+                    pcall(function() Clone.CFrame = Original.CFrame end);
+                end
+            end
+        end));
+
+        task.spawn(function()
+            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait();
+            AimPreview:BuildFromModel(Character);
+        end);
+        Library:GiveSignal(LocalPlayer.CharacterAdded:Connect(function(char)
+            task.wait(0.3);
+            AimPreview:BuildFromModel(char);
+        end));
+
+        Groupbox:AddBlank(6);
+        Groupbox:Resize();
+
+        return AimPreview;
+    end;
+
     BaseGroupbox.__index = BaseGroupboxFuncs;
     BaseGroupbox.__namecall = function(Table, Key, ...)
         return BaseGroupboxFuncs[Key](...);
