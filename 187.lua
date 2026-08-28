@@ -5236,7 +5236,7 @@ do
         return Preview;
     end;
 
-    -- Aimbot hitbox preview: click / tap a body part to set aim target
+    -- Aimbot hitbox preview: click real body parts on your character to set aim targets
     function BaseGroupboxFuncs:AddAimbotPreview(Name)
         local Groupbox = self;
         local Container = Groupbox.Container;
@@ -5244,12 +5244,9 @@ do
 
         local AimPreview = {
             Target = "Head";
-            Targets = { "Head" }; -- multi-select list of aim part names
+            Targets = { "Head" };
             Callback = nil;
         };
-
-        -- Which body slots are currently selected (toggle on/off)
-        local SelectedSlots = { Head = true };
 
         local PART_LABELS = {
             Head = "Head";
@@ -5275,7 +5272,6 @@ do
             HumanoidRootPart = "Center";
         };
 
-        -- Which real part names count as the selected "slot"
         local SLOT_PARTS = {
             Head = { "Head" };
             Torso = { "UpperTorso", "LowerTorso", "Torso", "HumanoidRootPart" };
@@ -5285,7 +5281,6 @@ do
             RightLeg = { "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg" };
         };
 
-        -- Preferred aim part name per slot (what aimbot uses)
         local SLOT_AIM = {
             Head = "Head";
             Torso = "UpperTorso";
@@ -5295,6 +5290,18 @@ do
             RightLeg = "RightUpperLeg";
         };
 
+        local SLOT_ORDER = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" };
+        local SelectedSlots = { Head = true };
+
+        local function partToSlot(partName)
+            for slot, list in pairs(SLOT_PARTS) do
+                for _, n in ipairs(list) do
+                    if n == partName then return slot end;
+                end
+            end
+            return nil;
+        end
+
         local function partMatchesSlot(partName, slot)
             local list = SLOT_PARTS[slot];
             if not list then return false end;
@@ -5302,17 +5309,6 @@ do
                 if n == partName then return true end;
             end
             return false;
-        end
-
-        local function aimNameForPart(partName)
-            for slot, list in pairs(SLOT_PARTS) do
-                for _, n in ipairs(list) do
-                    if n == partName then
-                        return SLOT_AIM[slot] or partName;
-                    end
-                end
-            end
-            return partName;
         end
 
         local Holder = Library:Create('Frame', {
@@ -5384,18 +5380,21 @@ do
         Viewport.LightDirection = Vector3.new(-0.5, -1, -0.5);
         Viewport.Parent = Bg;
 
-        -- Hit zones (always work) — overlaid on character silhouette
-        local ZoneLayer = Instance.new('Frame');
-        ZoneLayer.BackgroundTransparency = 1;
-        ZoneLayer.Size = UDim2.fromScale(1, 1);
-        ZoneLayer.ZIndex = 25;
-        ZoneLayer.Parent = Bg;
+        -- Full-area click catcher (picks real parts under the cursor)
+        local ClickLayer = Instance.new('TextButton');
+        ClickLayer.Name = "ClickLayer";
+        ClickLayer.BackgroundTransparency = 1;
+        ClickLayer.Size = UDim2.fromScale(1, 1);
+        ClickLayer.Text = "";
+        ClickLayer.AutoButtonColor = false;
+        ClickLayer.ZIndex = 30;
+        ClickLayer.Parent = Bg;
 
         Library:CreateLabel({
             BackgroundTransparency = 1;
             Position = UDim2.new(0, 6, 1, -22);
             Size = UDim2.new(1, -12, 0, 16);
-            Text = "Click to select · click again to remove";
+            Text = "Click your body part · again to remove";
             TextSize = 11;
             TextColor3 = Color3.fromRGB(130, 130, 140);
             TextXAlignment = Enum.TextXAlignment.Center;
@@ -5408,10 +5407,9 @@ do
         ViewportCamera.CameraType = Enum.CameraType.Scriptable;
 
         local PreviewModel = nil;
-        local RenderObjects = {}; -- original -> clone
+        local RenderObjects = {}; -- original BasePart -> clone
         local CloneToName = {};
-        local PartOriginalProps = {}; -- clone -> {Color, Material, Transparency}
-        local SLOT_ORDER = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" };
+        local PartOriginalProps = {};
         local OFFSET = CFrame.new(0, 1.6, -6.2);
 
         local ValidClasses = {
@@ -5439,7 +5437,7 @@ do
                 end
             end
             AimPreview.Targets = list;
-            AimPreview.Target = list[1]; -- primary (first selected) or nil
+            AimPreview.Target = list[1];
             return list;
         end
 
@@ -5459,15 +5457,25 @@ do
                     end
 
                     if selected then
-                        -- ONLY selected parts get accent color
                         clone.Color = Library.AccentColor;
                         clone.Material = Enum.Material.SmoothPlastic;
                         clone.Transparency = 0;
+                        -- clear mesh texture so color shows on MeshParts
+                        pcall(function()
+                            if clone:IsA("MeshPart") then
+                                clone.TextureID = "";
+                            end
+                        end);
                     else
                         if props then
                             clone.Color = props.Color;
                             clone.Material = props.Material;
                             clone.Transparency = props.Transparency;
+                            pcall(function()
+                                if clone:IsA("MeshPart") and props.TextureID then
+                                    clone.TextureID = props.TextureID;
+                                end
+                            end);
                         end
                     end
                 end
@@ -5494,17 +5502,9 @@ do
         end
 
         function AimPreview:SetTarget(partName)
-            -- Set single target (clears others) — or pass nil to clear all
             SelectedSlots = {};
             if typeof(partName) == "string" and partName ~= "" then
-                local slot = partName;
-                if not SLOT_PARTS[slot] then
-                    for s, list in pairs(SLOT_PARTS) do
-                        for _, n in ipairs(list) do
-                            if n == partName then slot = s; break end
-                        end
-                    end
-                end
+                local slot = partToSlot(partName) or partName;
                 if SLOT_PARTS[slot] then
                     SelectedSlots[slot] = true;
                 end
@@ -5514,7 +5514,7 @@ do
         end
 
         function AimPreview:GetTarget()
-            return AimPreview.Target; -- nil if nothing selected
+            return AimPreview.Target;
         end
 
         function AimPreview:GetTargets()
@@ -5542,6 +5542,7 @@ do
                     Color = Object.Color;
                     Material = Object.Material;
                     Transparency = Object.Transparency;
+                    TextureID = (Object:IsA("MeshPart") and Object.TextureID) or nil;
                 };
                 Clone.Anchored = true;
                 Clone.CanCollide = false;
@@ -5588,7 +5589,6 @@ do
                 end
             end
 
-            -- Prefer R15 torso name if present
             if Model:FindFirstChild("UpperTorso") then
                 SLOT_AIM.Torso = "UpperTorso";
             elseif Model:FindFirstChild("Torso") then
@@ -5604,8 +5604,8 @@ do
             applySelectionVisual();
         end
 
-        local function selectSlot(slot)
-            -- Toggle: click again removes that aim spot
+        local function toggleSlot(slot)
+            if not slot or not SLOT_PARTS[slot] then return end;
             if SelectedSlots[slot] then
                 SelectedSlots[slot] = nil;
             else
@@ -5614,54 +5614,104 @@ do
             applySelectionVisual();
             fireChanged();
 
-            local list = AimPreview.Targets;
-            if #list == 0 then
-                Library:Notify("Aim cleared — pick a body part", 1.2);
-            elseif SelectedSlots[slot] then
-                Library:Notify("Aim + " .. (PART_LABELS[SLOT_AIM[slot]] or slot), 1.0);
+            local aimName = SLOT_AIM[slot] or slot;
+            if SelectedSlots[slot] then
+                Library:Notify("Aim + " .. (PART_LABELS[aimName] or aimName), 1.0);
             else
-                Library:Notify("Aim - " .. (PART_LABELS[SLOT_AIM[slot]] or slot), 1.0);
+                if #(AimPreview.Targets or {}) == 0 then
+                    Library:Notify("Aim cleared", 1.0);
+                else
+                    Library:Notify("Aim - " .. (PART_LABELS[aimName] or aimName), 1.0);
+                end
             end
         end
 
-        -- Fixed hit zones over the character (reliable clicks)
-        -- Layout approximates standing character in the viewport
-        local zones = {
-            { Slot = "Head";     Pos = UDim2.new(0.38, 0, 0.04, 0); Size = UDim2.new(0.24, 0, 0.16, 0) };
-            { Slot = "Torso";    Pos = UDim2.new(0.34, 0, 0.20, 0); Size = UDim2.new(0.32, 0, 0.28, 0) };
-            { Slot = "LeftArm";  Pos = UDim2.new(0.14, 0, 0.20, 0); Size = UDim2.new(0.20, 0, 0.30, 0) };
-            { Slot = "RightArm"; Pos = UDim2.new(0.66, 0, 0.20, 0); Size = UDim2.new(0.20, 0, 0.30, 0) };
-            { Slot = "LeftLeg";  Pos = UDim2.new(0.30, 0, 0.50, 0); Size = UDim2.new(0.20, 0, 0.42, 0) };
-            { Slot = "RightLeg"; Pos = UDim2.new(0.50, 0, 0.50, 0); Size = UDim2.new(0.20, 0, 0.42, 0) };
-        };
+        -- Pick the real body part under the cursor inside the ViewportFrame
+        local function pickPartAtScreen(screenX, screenY)
+            local absPos = Viewport.AbsolutePosition;
+            local absSize = Viewport.AbsoluteSize;
+            if absSize.X < 2 or absSize.Y < 2 then return nil end;
 
-        for _, z in ipairs(zones) do
-            local btn = Instance.new('TextButton');
-            btn.Name = "Zone_" .. z.Slot;
-            btn.BackgroundTransparency = 1;
-            btn.BorderSizePixel = 0;
-            btn.Text = "";
-            btn.AutoButtonColor = false;
-            btn.Position = z.Pos;
-            btn.Size = z.Size;
-            btn.ZIndex = 30;
-            btn.Parent = ZoneLayer;
+            local localX = screenX - absPos.X;
+            local localY = screenY - absPos.Y;
+            if localX < 0 or localY < 0 or localX > absSize.X or localY > absSize.Y then
+                return nil;
+            end
 
-            local slot = z.Slot;
-            btn.MouseButton1Click:Connect(function()
-                selectSlot(slot);
-            end);
-            btn.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Touch then
-                    selectSlot(slot);
+            local cam = ViewportCamera;
+            if not cam then return nil end;
+
+            local click = Vector2.new(localX, localY);
+            local bestSlot, bestDist = nil, 1e9;
+
+            for orig, clone in pairs(RenderObjects) do
+                if clone and clone.Parent and clone:IsA("BasePart") then
+                    local name = CloneToName[clone] or (orig and orig.Name);
+                    local slot = partToSlot(name);
+                    if not slot then continue end;
+
+                    local ok, sp = pcall(function()
+                        return cam:WorldToViewportPoint(clone.Position);
+                    end);
+                    if ok and sp and sp.Z > 0 then
+                        local d = (Vector2.new(sp.X, sp.Y) - click).Magnitude;
+                        -- hit radius scales with part size + viewport size
+                        local scale = math.min(absSize.X, absSize.Y) / 180;
+                        local radius = math.clamp(math.max(clone.Size.X, clone.Size.Y, clone.Size.Z) * 14 * scale, 12, 55);
+                        if d <= radius and d < bestDist then
+                            bestDist = d;
+                            bestSlot = slot;
+                        end
+                    end
                 end
-            end);
+            end
+
+            return bestSlot;
         end
+
+        local function screenFromInput(input)
+            if input and input.Position then
+                return input.Position.X, input.Position.Y;
+            end
+            local loc = InputService:GetMouseLocation();
+            return loc.X, loc.Y;
+        end
+
+        local function onClick(input)
+            local x, y = screenFromInput(input);
+            -- AbsolutePosition matches GetMouseLocation when UI is in CoreGui/gethui
+            local slot = pickPartAtScreen(x, y);
+            if not slot then
+                -- try with GuiInset compensation (some executors differ)
+                local insetY = 0;
+                pcall(function()
+                    insetY = game:GetService("GuiService"):GetGuiInset().Y;
+                end);
+                slot = pickPartAtScreen(x, y - insetY);
+                if not slot then
+                    slot = pickPartAtScreen(x, y + insetY);
+                end
+            end
+            if slot then
+                toggleSlot(slot);
+            end
+        end
+
+        ClickLayer.MouseButton1Click:Connect(function()
+            onClick(nil);
+        end);
+
+        ClickLayer.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
+                onClick(input);
+            end
+        end);
 
         Library:GiveSignal(RunService.RenderStepped:Connect(function()
             if not PreviewModel or not Holder.Parent then return end;
 
-            local Root = PreviewModel:FindFirstChild('HumanoidRootPart');
+            local Root = PreviewModel:FindFirstChild("HumanoidRootPart");
             if not Root then return end;
 
             ViewportCamera.CFrame = CFrame.new(
@@ -5675,7 +5725,6 @@ do
                 end
             end
 
-            -- Keep selected parts highlighted
             applySelectionVisual();
         end));
 
