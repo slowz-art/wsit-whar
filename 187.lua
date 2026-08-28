@@ -5907,16 +5907,23 @@ function Library:CreateWindow(...)
 
     -- Search under the title label
     local SidebarSearchHolder = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(22, 22, 26);
+        BackgroundColor3 = Color3.fromRGB(22, 22, 27);
         BorderSizePixel = 0;
         Position = UDim2.new(0, 10, 0, 36);
-        Size = UDim2.new(1, -20, 0, 26);
+        Size = UDim2.new(1, -20, 0, 28);
         ZIndex = 4;
         Parent = Sidebar;
     });
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 5);
+        CornerRadius = UDim.new(0, 6);
+        Parent = SidebarSearchHolder;
+    });
+
+    Library:Create('UIStroke', {
+        Color = Color3.fromRGB(38, 38, 46);
+        Thickness = 1;
+        Transparency = 0.45;
         Parent = SidebarSearchHolder;
     });
 
@@ -5967,7 +5974,7 @@ function Library:CreateWindow(...)
 
     -- ========== PLAYER FOOTER (bottom of sidebar) ==========
     local PlayerFooter = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(15, 15, 18);
+        BackgroundColor3 = Color3.fromRGB(14, 14, 17);
         BorderSizePixel = 0;
         Position = UDim2.new(0, 0, 1, -FOOTER_HEIGHT);
         Size = UDim2.new(1, 0, 0, FOOTER_HEIGHT);
@@ -5976,10 +5983,10 @@ function Library:CreateWindow(...)
     });
 
     local FooterTopLine = Library:Create('Frame', {
-        BackgroundColor3 = Color3.fromRGB(32, 32, 38);
+        BackgroundColor3 = Color3.fromRGB(36, 36, 44);
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(1, 0, 0, 1);
+        Position = UDim2.new(0, 8, 0, 0);
+        Size = UDim2.new(1, -16, 0, 1);
         ZIndex = 6;
         Parent = PlayerFooter;
     });
@@ -6092,11 +6099,25 @@ function Library:CreateWindow(...)
         if typeof(display) ~= "string" or display == "" then
             display = LocalPlayer.DisplayName or LocalPlayer.Name;
         end;
-        NameBox.Text = display;
-        SubLabel.Text = "@" .. LocalPlayer.Name;
+        if NameBox:IsFocused() ~= true then
+            NameBox.Text = display;
+        end
+        -- @ line follows the shown name (custom or real)
+        SubLabel.Text = "@" .. tostring(display):gsub("%s+", "");
     end;
 
-    NameBox.FocusLost:Connect(function(enter)
+    -- Live update @ while typing
+    NameBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if Library.StreamerMode then return end
+        local text = tostring(NameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "");
+        if text == "" then
+            SubLabel.Text = "@" .. (LocalPlayer.DisplayName or LocalPlayer.Name);
+        else
+            SubLabel.Text = "@" .. text:gsub("%s+", "");
+        end
+    end);
+
+    NameBox.FocusLost:Connect(function()
         local text = tostring(NameBox.Text or ""):gsub("^%s+", ""):gsub("%s+$", "");
         if text == "" then
             Library.CustomDisplayName = nil;
@@ -6232,13 +6253,13 @@ function Library:CreateWindow(...)
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Color3.fromRGB(17, 17, 20);
             BorderSizePixel = 0;
-            Size = UDim2.new(1, 0, 0, 32);
+            Size = UDim2.new(1, 0, 0, 34);
             ZIndex = 4;
             Parent = TabArea;
         });
 
         Library:Create('UICorner', {
-            CornerRadius = UDim.new(0, 5);
+            CornerRadius = UDim.new(0, 6);
             Parent = TabButton;
         });
 
@@ -6247,10 +6268,15 @@ function Library:CreateWindow(...)
             BackgroundColor3 = Library.AccentColor;
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
-            Position = UDim2.new(0, 0, 0.25, 0);
-            Size = UDim2.new(0, 2, 0.5, 0);
+            Position = UDim2.new(0, 0, 0.22, 0);
+            Size = UDim2.new(0, 3, 0.56, 0);
             ZIndex = 6;
             Parent = TabButton;
+        });
+
+        Library:Create('UICorner', {
+            CornerRadius = UDim.new(0, 2);
+            Parent = AccentBar;
         });
 
         Library:AddToRegistry(AccentBar, {
@@ -6258,13 +6284,13 @@ function Library:CreateWindow(...)
         });
 
         local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 12, 0, 0);
-            Size = UDim2.new(1, -16, 1, 0);
+            Position = UDim2.new(0, 14, 0, 0);
+            Size = UDim2.new(1, -18, 1, 0);
             Text = Tab.Name;
-            TextSize = 12;
+            TextSize = 13;
             TextWrapped = false;
             TextXAlignment = Enum.TextXAlignment.Left;
-            TextColor3 = Color3.fromRGB(140, 140, 150);
+            TextColor3 = Color3.fromRGB(145, 145, 155);
             RichText = true;
             ZIndex = 5;
             Parent = TabButton;
@@ -6526,9 +6552,9 @@ function Library:CreateWindow(...)
                 OtherTab:HideTab();
             end;
 
-            TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 36);
+            TabButton.BackgroundColor3 = Color3.fromRGB(28, 28, 34);
             AccentBar.BackgroundTransparency = 0;
-            TabButtonLabel.TextColor3 = Color3.fromRGB(230, 230, 235);
+            TabButtonLabel.TextColor3 = Color3.fromRGB(235, 235, 240);
             TabFrame.Visible = true;
 
             Tab:Resize();
@@ -6537,7 +6563,7 @@ function Library:CreateWindow(...)
         function Tab:HideTab()
             TabButton.BackgroundColor3 = Color3.fromRGB(17, 17, 20);
             AccentBar.BackgroundTransparency = 1;
-            TabButtonLabel.TextColor3 = Color3.fromRGB(140, 140, 150);
+            TabButtonLabel.TextColor3 = Color3.fromRGB(145, 145, 155);
             TabFrame.Visible = false;
         end;
 
