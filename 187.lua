@@ -5852,56 +5852,86 @@ function Library:CreateWindow(...)
         Parent = Sidebar;
     });
 
-    -- Cycling title label (word cycle)
+    -- Cycling title: each word enters from the RIGHT and slides fully across to the LEFT
     local SidebarTitleHolder = Library:Create('Frame', {
         BackgroundTransparency = 1;
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 12, 0, 10);
-        Size = UDim2.new(1, -24, 0, 20);
+        Position = UDim2.new(0, 12, 0, 8);
+        Size = UDim2.new(1, -24, 0, 22);
         ClipsDescendants = true;
         ZIndex = 4;
         Parent = Sidebar;
     });
 
-    local function MakeSidebarCycleLabel(Text, Pos)
+    local function makeCycleLabel(text, pos)
         return Library:CreateLabel({
             BackgroundTransparency = 1;
-            Position = Pos or UDim2.new(0, 0, 0, 0);
+            Position = pos or UDim2.new(0, 0, 0, 0);
             Size = UDim2.new(1, 0, 1, 0);
-            Text = tostring(Text or '');
+            Text = tostring(text or "");
             TextXAlignment = Enum.TextXAlignment.Left;
             TextSize = 13;
-            TextColor3 = Color3.fromRGB(225, 225, 230);
+            TextColor3 = Color3.fromRGB(230, 230, 235);
+            TextTruncate = Enum.TextTruncate.None;
             RichText = true;
             ZIndex = 5;
             Parent = SidebarTitleHolder;
         });
-    end;
+    end
 
-    -- Reuse TitleWords from the main title system
-    local SidebarLabel = MakeSidebarCycleLabel(TitleWords[1], UDim2.new(0, 0, 0, 0));
+    local SidebarLabel = makeCycleLabel(TitleWords[1], UDim2.new(0, 0, 0, 0));
+    local CycleIdx = 1;
+    local CycleBusy = false;
+
+    local function cycleToNext()
+        if CycleBusy then return end;
+        if not (SidebarTitleHolder and SidebarTitleHolder.Parent) then return end;
+        if type(TitleWords) ~= "table" or #TitleWords <= 1 then return end;
+
+        CycleBusy = true;
+        local TS = game:GetService("TweenService");
+        local nextIdx = CycleIdx + 1;
+        if nextIdx > #TitleWords then nextIdx = 1 end;
+        local nextText = tostring(TitleWords[nextIdx] or "");
+
+        local oldLabel = SidebarLabel;
+        -- Current word slides fully off to the left
+        local slideTi = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut);
+        pcall(function()
+            TS:Create(oldLabel, slideTi, {
+                Position = UDim2.new(-1.2, 0, 0, 0);
+            }):Play();
+        end);
+
+        -- Next word starts off-screen right and slides fully to center
+        local nextLabel = makeCycleLabel(nextText, UDim2.new(1.2, 0, 0, 0));
+        pcall(function()
+            TS:Create(nextLabel, slideTi, {
+                Position = UDim2.new(0, 0, 0, 0);
+            }):Play();
+        end);
+
+        task.wait(0.65);
+
+        pcall(function()
+            if oldLabel and oldLabel.Parent then oldLabel:Destroy() end;
+        end);
+        for _, child in ipairs(SidebarTitleHolder:GetChildren()) do
+            if child:IsA("TextLabel") and child ~= nextLabel then
+                pcall(function() child:Destroy() end);
+            end
+        end
+
+        SidebarLabel = nextLabel;
+        CycleIdx = nextIdx;
+        Window.Title = nextText;
+        CycleBusy = false;
+    end
+
     task.spawn(function()
-        local idx = 1;
-        local TS = game:GetService('TweenService');
         while SidebarTitleHolder and SidebarTitleHolder.Parent do
-            task.wait(1.6);
-            if not (SidebarTitleHolder and SidebarTitleHolder.Parent) then break end;
-            if #TitleWords <= 1 then continue end;
-            local nextIdx = idx + 1;
-            if nextIdx > #TitleWords then nextIdx = 1 end;
-            local nextLabel = MakeSidebarCycleLabel(TitleWords[nextIdx], UDim2.new(1, 0, 0, 0));
-            local ti = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out);
-            pcall(function()
-                TS:Create(SidebarLabel, ti, { Position = UDim2.new(-1, 0, 0, 0) }):Play();
-                TS:Create(nextLabel, ti, { Position = UDim2.new(0, 0, 0, 0) }):Play();
-            end);
-            task.wait(0.45);
-            pcall(function()
-                if SidebarLabel then SidebarLabel:Destroy() end;
-            end);
-            SidebarLabel = nextLabel;
-            idx = nextIdx;
-            Window.Title = TitleWords[idx];
+            task.wait(2.5);
+            pcall(cycleToNext);
         end;
     end);
 
@@ -6232,12 +6262,14 @@ function Library:CreateWindow(...)
     function Window:SetTitleWords(Words)
         if type(Words) == 'table' and #Words > 0 then
             TitleWords = Words;
-            if WindowLabel and WindowLabel.Parent then
-                WindowLabel.Text = tostring(Words[1]);
-            end;
-            if SidebarLabel and SidebarLabel.Parent then
-                SidebarLabel.Text = tostring(Words[1]);
-            end;
+            CycleIdx = 1;
+            -- Clear and reset label
+            for _, child in ipairs(SidebarTitleHolder:GetChildren()) do
+                if child:IsA("TextLabel") then
+                    pcall(function() child:Destroy() end);
+                end
+            end
+            SidebarLabel = makeCycleLabel(tostring(Words[1]), UDim2.new(0, 0, 0, 0));
             Window.Title = tostring(Words[1]);
         end
     end;
@@ -7119,19 +7151,26 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = 'MainColor';
             });
 
-            -- No accent line on tabbox (cleaner)
+            -- Same top accent line as groupboxes (Emotes-style)
             local Highlight = Library:Create('Frame', {
-                BackgroundTransparency = 1;
+                BackgroundColor3 = Library.AccentColor;
+                BackgroundTransparency = 0.4;
                 BorderSizePixel = 0;
-                Size = UDim2.new(0, 0, 0, 0);
-                ZIndex = 1;
+                Size = UDim2.new(1, 0, 0, 2);
+                Position = UDim2.new(0, 0, 0, 0);
+                ZIndex = 6;
                 Parent = BoxInner;
             });
 
+            Library:AddToRegistry(Highlight, {
+                BackgroundColor3 = 'AccentColor';
+            });
+
+            -- Same header height as groupboxes
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 4, 0, 4);
-                Size = UDim2.new(1, -8, 0, 22);
+                Position = UDim2.new(0, 6, 0, 8);
+                Size = UDim2.new(1, -12, 0, 22);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -7190,8 +7229,8 @@ function Library:CreateWindow(...)
 
                 local Container = Library:Create('Frame', {
                     BackgroundTransparency = 1;
-                    Position = UDim2.new(0, 8, 0, 28);
-                    Size = UDim2.new(1, -14, 1, -32);
+                    Position = UDim2.new(0, 8, 0, 30);
+                    Size = UDim2.new(1, -14, 1, -34);
                     ZIndex = 1;
                     Visible = false;
                     Parent = BoxInner;
@@ -7250,7 +7289,8 @@ function Library:CreateWindow(...)
                             Size = Size + Element.Size.Y.Offset;
                         end;
                     end;
-                    BoxOuter.Size = UDim2.new(1, 0, 0, (28 * DPIScale + Size) + 8);
+                    -- Match groupbox sizing (e.g. Emotes)
+                    BoxOuter.Size = UDim2.new(1, 0, 0, (28 * DPIScale + Size) + 10);
                 end;
 
                 Button.InputBegan:Connect(function(Input)
