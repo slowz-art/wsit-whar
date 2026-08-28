@@ -5987,34 +5987,38 @@ function Library:CreateWindow(...)
     local AvatarHolder = Library:Create('Frame', {
         BackgroundColor3 = Color3.fromRGB(28, 28, 34);
         BorderSizePixel = 0;
-        Position = UDim2.new(0, 10, 0.5, -14);
-        Size = UDim2.new(0, 28, 0, 28);
+        Position = UDim2.new(0, 10, 0.5, -15);
+        Size = UDim2.new(0, 30, 0, 30);
+        ClipsDescendants = true;
         ZIndex = 6;
         Parent = PlayerFooter;
     });
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 6);
+        CornerRadius = UDim.new(1, 0); -- circle
         Parent = AvatarHolder;
     });
 
-    local AvatarImage = Library:Create('ImageLabel', {
-        BackgroundTransparency = 1;
-        Size = UDim2.new(1, 0, 1, 0);
-        Image = "";
-        ZIndex = 7;
-        Parent = AvatarHolder;
-    });
+    local AvatarImage = Instance.new('ImageLabel');
+    AvatarImage.Name = "Avatar";
+    AvatarImage.BackgroundTransparency = 1;
+    AvatarImage.BorderSizePixel = 0;
+    AvatarImage.Size = UDim2.new(1, 0, 1, 0);
+    AvatarImage.Position = UDim2.new(0, 0, 0, 0);
+    AvatarImage.Image = "";
+    AvatarImage.ScaleType = Enum.ScaleType.Crop;
+    AvatarImage.ZIndex = 7;
+    AvatarImage.Parent = AvatarHolder;
 
     Library:Create('UICorner', {
-        CornerRadius = UDim.new(0, 6);
+        CornerRadius = UDim.new(1, 0);
         Parent = AvatarImage;
     });
 
     local NameBox = Library:Create('TextBox', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 44, 0, 8);
-        Size = UDim2.new(1, -54, 0, 18);
+        Position = UDim2.new(0, 46, 0, 8);
+        Size = UDim2.new(1, -56, 0, 18);
         Font = Library.Font;
         Text = LocalPlayer.DisplayName or LocalPlayer.Name;
         PlaceholderText = "Display name...";
@@ -6031,8 +6035,8 @@ function Library:CreateWindow(...)
     Library:ApplyTextStroke(NameBox);
 
     local SubLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 44, 0, 26);
-        Size = UDim2.new(1, -54, 0, 14);
+        Position = UDim2.new(0, 46, 0, 26);
+        Size = UDim2.new(1, -56, 0, 14);
         Text = "@" .. LocalPlayer.Name;
         TextSize = 10;
         TextColor3 = Color3.fromRGB(120, 120, 130);
@@ -6042,19 +6046,41 @@ function Library:CreateWindow(...)
         Parent = PlayerFooter;
     });
 
-    -- Load avatar thumbnail
-    task.spawn(function()
-        local ok, content = pcall(function()
-            return Players:GetUserThumbnailAsync(
-                LocalPlayer.UserId,
-                Enum.ThumbnailType.HeadShot,
-                Enum.ThumbnailSize.Size48x48
-            );
+    -- Load avatar with multiple fallbacks (works across most executors)
+    local function setAvatarImage(url)
+        if AvatarImage and AvatarImage.Parent and typeof(url) == "string" and url ~= "" then
+            AvatarImage.Image = url;
+        end
+    end
+
+    local function loadAvatar()
+        local uid = LocalPlayer.UserId;
+        if typeof(uid) ~= "number" or uid < 1 then return end;
+
+        -- 1) rbxthumb (native, fastest)
+        setAvatarImage(string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", uid));
+
+        -- 2) GetUserThumbnailAsync
+        task.spawn(function()
+            local ok, content = pcall(function()
+                return Players:GetUserThumbnailAsync(uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150);
+            end);
+            if ok and content and content ~= "" then
+                setAvatarImage(content);
+                return;
+            end
+
+            -- 3) Classic headshot URL
+            setAvatarImage(string.format(
+                "https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=150&height=150&format=png",
+                uid
+            ));
         end);
-        if ok and content and AvatarImage and AvatarImage.Parent then
-            AvatarImage.Image = content;
-        end;
-    end);
+    end
+
+    task.defer(loadAvatar);
+    -- retry once in case player data was still loading
+    task.delay(1.5, loadAvatar);
 
     local function refreshFooterDisplay()
         if Library.StreamerMode then
@@ -6603,10 +6629,14 @@ function Library:CreateWindow(...)
                 Parent = BoxInner;
             });
 
+            -- Clip so content never spills into the next groupbox
+            BoxOuter.ClipsDescendants = true;
+            BoxInner.ClipsDescendants = true;
+
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 10, 0, 28);
-                Size = UDim2.new(1, -18, 1, -34);
+                Position = UDim2.new(0, 8, 0, 26);
+                Size = UDim2.new(1, -14, 1, -30);
                 ZIndex = 1;
                 Parent = BoxInner;
             });
@@ -6614,7 +6644,6 @@ function Library:CreateWindow(...)
             Library:Create('UIListLayout', {
                 FillDirection = Enum.FillDirection.Vertical;
                 SortOrder = Enum.SortOrder.LayoutOrder;
-                Padding = UDim.new(0, 1);
                 Parent = Container;
             });
 
@@ -6625,14 +6654,14 @@ function Library:CreateWindow(...)
                         Size = Size + Element.Size.Y.Offset;
                     end;
                 end;
-                -- Header ~30px + padding
-                BoxOuter.Size = UDim2.new(1, 0, 0, (30 * DPIScale + Size) + 10);
+                -- Header + content + bottom padding (must match container offset)
+                BoxOuter.Size = UDim2.new(1, 0, 0, (28 * DPIScale + Size) + 10);
             end;
 
             Groupbox.Container = Container;
             setmetatable(Groupbox, BaseGroupbox);
 
-            Groupbox:AddBlank(4);
+            Groupbox:AddBlank(3);
             Groupbox:Resize();
 
             Tab.Groupboxes[Info.Name] = Groupbox;
