@@ -6213,15 +6213,8 @@ function Library:CreateWindow(...)
             or (typeof(Config.SubName) == 'string' and Config.SubName ~= '' and Config.SubName)
             or Config.Title
             or 'Project X';
-        TitleWords = {
-            base;
-            'On top';
-            'Best Auto dupe';
-            'And universal';
-            'Script';
-            '7+ games';
-            'supported';
-        };
+        -- No hardcoded cycle junk — only use the title unless TitleWords is provided
+        TitleWords = { base };
     end;
 
     local WindowLabel = MakeCycleLabel(TitleWords[1], UDim2.new(0, 0, 0, 0));
